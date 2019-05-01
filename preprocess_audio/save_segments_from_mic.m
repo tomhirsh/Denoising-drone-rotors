@@ -6,9 +6,9 @@
 % recordings folder
 rec_f_name = 'C:\Users\Tom\Documents\Learning_stuff\semester 8\Denoising_project\data\';
 % recording file name to use
-rec_name = 'Processed_data_rotors.mat'
+rec_name = 'Processed_data_sounds.mat'
 % choose Mic
-sub_f_name = 'Mic1';
+sub_f_name = 'Mic8';
 
 % create subfolder to save processed data
 mkdir(sub_f_name);
@@ -27,7 +27,8 @@ L = 1;
 end_loop = floor(T(size(T))/L);
 for i = 1:end_loop
     idx = (T >= L*(i-1)) & (T <= L*i);
-    tmp = Mic1(idx);
-    name = sprintf('%s/%s_%.0f.wav', sub_f_name, sub_f_name, i);
+    tmp = Mic8(idx);
+    name = sprintf('%s/%s_%.0f.wav', sub_f_name, sub_f_name, i); % use for sounds
+    % name = sprintf('%s/%s_%.0f_%.0f.wav', sub_f_name, sub_f_name, i, rpm(i*fs)); % use only for rotors (first run getRpm)
     audiowrite(name,tmp,fs);
 end
