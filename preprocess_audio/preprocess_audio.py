@@ -5,6 +5,35 @@ import matplotlib.pyplot as plt
 import numpy as np
 from sklearn import model_selection
 import argparse
+import random
+
+"""
+options for augmentation:
+0. random from 1 to 3
+1. time stretching {0.81, 0.93, 1.07, 1.23}
+2. pitch shifting light {-2, -1, 1, 2}
+3. pitch shifting - larger values {-3.5, -2.5, 2.5, 3.5}
+"""
+def add_augmentation(sound_arr, fs = 22050, augmentation=0):
+    ts_list = [0.81, 0.93, 1.07, 1.23]
+    ps1_list = [-2, -1, 1, 2]
+    ps2_list = [-3.5, -2.5, 2.5, 3.5]
+    if augmentation == 0:
+        augmentation = random.randint(1,3)
+    if augmentation == 1:
+        # time stretching
+        ts_val = random.choice(ts_list)
+        augmented_sound = librosa.effects.time_stretch(sound_arr, ts_val)
+    elif augmentation == 2:
+        # pitch shift light
+        ps1_val = random.choice(ps1_list)
+        augmented_sound = librose.effects.pitch_shift(sound_arr, fs, n_steps=ps1_val)
+    else:
+        # pitch shift (larger)
+        ps2_val = random.choice(ps2_list)
+        augmented_sound = librose.effects.pitch_shift(sound_arr, fs, n_steps=ps2_val)
+    return augmented_sound
+
 
 # reconstraction is taken from https://github.com/vadim-v-lebedev/audio_style_tranfer/blob/master/audio_style_transfer.ipynb
 def spectogram_to_wav(spectogram_content, dst_path, N_CHANNELS, N_FFT, fs):
