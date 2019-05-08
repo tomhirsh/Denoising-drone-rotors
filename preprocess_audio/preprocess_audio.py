@@ -7,6 +7,7 @@ from sklearn import model_selection
 import argparse
 import random
 
+
 """
 options for augmentation:
 0. random from 1 to 3
@@ -27,11 +28,11 @@ def add_augmentation(sound_arr, fs = 22050, augmentation=0):
     elif augmentation == 2:
         # pitch shift light
         ps1_val = random.choice(ps1_list)
-        augmented_sound = librose.effects.pitch_shift(sound_arr, fs, n_steps=ps1_val)
+        augmented_sound = librosa.effects.pitch_shift(sound_arr, fs, n_steps=ps1_val)
     else:
         # pitch shift (larger)
         ps2_val = random.choice(ps2_list)
-        augmented_sound = librose.effects.pitch_shift(sound_arr, fs, n_steps=ps2_val)
+        augmented_sound = librosa.effects.pitch_shift(sound_arr, fs, n_steps=ps2_val)
     return augmented_sound
 
 
@@ -69,37 +70,39 @@ def create_spectogram(src_audio, N_FFT):
 
 
 def create_train_test_spectograms(dir_list, sounds_train, rotors_train , N_FFT, phase='train'):
-    sound_dir, rotors_dir, train_dir, valid_dir = dir_list
+    sound_dir, rotors_dir, train_dir, label_dir = dir_list
     for sound in sounds_train:
         print(f'processing {sound}')
         sound_path = os.path.join(sound_dir, sound)
         # possible augmentation
         sound_audio, fs_s = librosa.load(sound_path)
         fs = fs_s
-        spectogram_sound_valid, N_CHANNELS = create_spectogram(sound_audio, N_FFT)
+        spectogram_sound_label, N_CHANNELS = create_spectogram(sound_audio, N_FFT)
         for rotor in rotors_train:
             rotor_path = os.path.join(rotors_dir, rotor)
             rotor_audio, fs_r = librosa.load(rotor_path)
             if fs_s != fs_r:
                 print("Error. unable to combine wavs. Don't have the same fs.")
                 exit()
-            combined_audio = combine_two_wavs(rotor_audio, sound_audio, volume1=0.2)
+            # pick a random part of rotors volume
+            volume_rotors = random.uniform(0.1, 0.3)
+            combined_audio = combine_two_wavs(rotor_audio, sound_audio, volume1=volume_rotors)
             spectogram_combined, N_CHANNELS = create_spectogram(combined_audio, N_FFT)
             # save combined rotor and sound
-            dst_name = sound[:-4] + '_' + rotor[:-4] + '.jpg'
+            dst_name = sound[:-4] + '_' + rotor[:-4] + '.png'
             if (phase == 'train'):
                 dst_train_name = 'train_'+dst_name
-                dst_valid_name = 'valid_' + dst_name
+                dst_label_name = 'label_' + dst_name
             else:
                 dst_train_name = 'test_combined_' + dst_name
-                dst_valid_name = 'test_sounds_' + dst_name
+                dst_label_name = 'test_sounds_' + dst_name
             dst_path = os.path.join(train_dir, dst_train_name)
             plt.imsave(dst_path, spectogram_combined)
             #print(f'combined spectogram {dst_train_name} saved.')
-            # save validation sound only
-            dst_path = os.path.join(valid_dir, dst_valid_name)
-            plt.imsave(dst_path, spectogram_sound_valid)
-            #print(f'sound spectogram {dst_valid_name} saved.')
+            # save labels sound only
+            dst_path = os.path.join(label_dir, dst_label_name)
+            plt.imsave(dst_path, spectogram_sound_label)
+            #print(f'sound spectogram {dst_label_name} saved.')
     return fs, N_CHANNELS
 
 
@@ -108,12 +111,9 @@ example of use in command line: python preprocess_audio.py -rotors_dir '...'
 """
 def parse_cli_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--rotors_dir', '-rotors_dir', help='enter rotors_dir', default='C:\\Users\\Tom\\Documents\\Learning_stuff\\semester 8\\Denoising_project\\data\\rotor')
-    parser.add_argument('--sound_dir', '-sound_dir', help='enter sound_dir', default='C:\\Users\\Tom\\Documents\\Learning_stuff\\semester 8\\Denoising_project\\data\\Mic8')
-    parser.add_argument('--train_dir', '-train_dir', help='enter train_dir', default='C:\\Users\\Tom\\Documents\\Learning_stuff\\semester 8\\Denoising_project\\data_spectograms\\train')
-    parser.add_argument('--valid_dir', '-valid_dir', help='enter valid_dir', default='C:\\Users\\Tom\\Documents\\Learning_stuff\\semester 8\\Denoising_project\\data_spectograms\\valid')
-    parser.add_argument('--test_dir_combined', '-test_dir_combined', help='enter test_dir_combined', default='C:\\Users\\Tom\\Documents\\Learning_stuff\\semester 8\\Denoising_project\\data_spectograms\\test_combined')
-    parser.add_argument('--test_dir_sounds', '-test_dir_sounds', help='enter test_dir_sounds', default='C:\\Users\\Tom\\Documents\\Learning_stuff\\semester 8\\Denoising_project\\data_spectograms\\test_sounds')
+    parser.add_argument('--data_dir', '-data_dir', help='enter data dir name', default='data')
+    parser.add_argument('--rotors_dir', '-rotors_dir', help='enter rotors dir name', default='rotor')
+    parser.add_argument('--sounds_dir', '-sounds_dir', help='enter sounds dir name', default='Mic8')
     parser.set_defaults(console=False)
     args = parser.parse_args()
     return args
@@ -122,10 +122,31 @@ def parse_cli_args():
 # init args and serial
 args = parse_cli_args()
 
-# given two folders, creates train:valid:test folders
-sounds_list = [f for f in os.listdir(args.sound_dir)]
-rotors_list = [f for f in os.listdir(args.rotors_dir)]
-# split to train:valid:test
+# get data dir, and create sub-dirs to save the spectograms
+cur_dir = os.getcwd()
+par_dir = os.path.abspath(os.path.join(cur_dir, os.pardir))
+
+data_dir = os.path.join(par_dir, args.data_dir)
+
+rotors_dir = os.path.join(data_dir, args.rotors_dir)
+sounds_dir = os.path.join(data_dir, args.sounds_dir)
+
+# create sub-directories for the spectograms (preprocessing results)
+
+train_dir = os.path.join(data_dir, 'train')
+label_dir = os.path.join(data_dir, 'label')
+os.mkdir(train_dir)
+os.mkdir(label_dir)
+
+test_dir_combined = os.path.join(data_dir, 'test_combined')
+test_dir_sounds = os.path.join(data_dir, 'test_dir_sounds')
+os.mkdir(test_dir_combined)
+os.mkdir(test_dir_sounds)
+
+# given two folders, creates train:label:test folders
+sounds_list = [f for f in os.listdir(sounds_dir)]
+rotors_list = [f for f in os.listdir(rotors_dir)]
+# split to train:test
 sounds_train, sounds_test = model_selection.train_test_split(sounds_list, train_size=0.9)
 rotors_train, rotors_test = model_selection.train_test_split(rotors_list, train_size=0.9)
 print(f'train sounds size: {len(sounds_train)}, train rotors size: {len(rotors_train)}')
@@ -135,8 +156,8 @@ N_FFT = 1024
 
 # create train and test spectograms
 print('processing train files')
-train_dirs_list = [args.sound_dir, args.rotors_dir, args.train_dir, args.valid_dir]
+train_dirs_list = [sounds_dir, rotors_dir,train_dir, label_dir]
 fs, N_CHANNELS = create_train_test_spectograms(train_dirs_list, sounds_train, rotors_train, N_FFT, phase='train')
 print('processing test files')
-test_dirs_list = [args.sound_dir, args.rotors_dir, args.test_dir_combined, args.test_dir_sounds]
+test_dirs_list = [sounds_dir, rotors_dir, test_dir_combined, test_dir_sounds]
 create_train_test_spectograms(test_dirs_list, sounds_test, rotors_test, N_FFT, phase='test')
