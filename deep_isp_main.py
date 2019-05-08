@@ -280,7 +280,7 @@ def collect_statistic(model, statistic_loader):
 
     for batch_idx, (data, target, _) in enumerate(tqdm(statistic_loader)):
         if args.gpus is not None:
-            data, target = data.cuda(async=True), target.cuda(async=True)
+            data, target = data.cuda(non_blocking=True), target.cuda(non_blocking=True)
 
         model(data)
 
@@ -290,7 +290,7 @@ def train(model, epoch, optimizer, criterion):
 
     for batch_idx, (data, target, _) in enumerate(tqdm(train_loader)):
         if args.gpus is not None:
-            data, target = data.cuda(async=True), target.cuda(async=True)
+            data, target = data.cuda(non_blocking=True), target.cuda(non_blocking=True)
 
         data, target = Variable(data), Variable(target)
 
@@ -365,7 +365,7 @@ def test(model, criterion, on_test_set=False):
 
     for batch_idx, (data, target, fname) in enumerate(tqdm(loader)):
         if args.gpus is not None:
-            data, target = data.cuda(async=True), target.cuda(async=True)
+            data, target = data.cuda(non_blocking=True), target.cuda(non_blocking=True)
 
         with torch.no_grad():
             data, target = Variable(data), Variable(target)
