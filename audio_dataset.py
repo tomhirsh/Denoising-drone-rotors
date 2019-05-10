@@ -6,6 +6,7 @@ import torch.utils.data as data
 # from PIL import Image
 import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split
+import pdb
 
 import deep_isp_utils as utils
 
@@ -23,9 +24,13 @@ class AudioDataset(data.Dataset):
     """
 
 
-    def read_pair_imgs(self, gt_dir, input_dir, file_name):
-        file_gt_path = os.path.join(gt_dir, 'train_' + file_name)
-        file_input_path = os.path.join(input_dir, 'label_' + file_name)
+    def read_pair_imgs(self, gt_dir, input_dir, file_name, train=True):
+        if train:
+          file_gt_path = os.path.join(gt_dir, 'label_' + file_name)
+          file_input_path = os.path.join(input_dir, 'train_' + file_name)
+        else:
+          file_gt_path = os.path.join(gt_dir, 'test_sounds_' + file_name)
+          file_input_path = os.path.join(input_dir, 'test_combined_' + file_name)
 
         gt = plt.imread(file_gt_path)[:, :, :3]
         gt = np.transpose(gt, (2, 0, 1))
@@ -66,7 +71,7 @@ class AudioDataset(data.Dataset):
             self.train_labels = []
 
             for f in self.train_list:
-                im, gt = self.read_pair_imgs(gt_dir, input_dir, f)
+                im, gt = self.read_pair_imgs(gt_dir, input_dir, f, train=True)
                 self.train_data.append(im)
                 self.train_labels.append(gt)
 
@@ -83,10 +88,10 @@ class AudioDataset(data.Dataset):
             self.test_data = []
             self.test_labels = []
 
-            self.test_filenames = [f[14:] for f in os.listdir(self.gt_dir)]  # TODO: check splitting
+            self.test_filenames = [f[len('test_sounds_'):] for f in os.listdir(gt_dir)]  # TODO: check splitting
 
             for f in self.test_filenames:
-                im, gt = self.read_pair_imgs(gt_dir, input_dir, f)
+                im, gt = self.read_pair_imgs(gt_dir, input_dir, f, train=False)
                 self.test_data.append(im)
                 self.test_labels.append(gt)
 

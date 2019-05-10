@@ -5,7 +5,8 @@ from torch.autograd import Variable
 from tqdm import tqdm
 import time
 from models.deep_isp_model import DenoisingNet
-from msr_demosaic import MSRDemosaic
+#from msr_demosaic import MSRDemosaic
+from audio_dataset import AudioDataset
 import deep_isp_utils as utils
 from collections import OrderedDict
 import shutil
@@ -72,7 +73,7 @@ parser.add_argument('--copy_statistics', type=lambda x: (str(x).lower() == 'true
 
 parser.add_argument('--quant_decay', type=float, default=0.0005, help='quant decay.')
 
-parser.add_argument('--val_part', type=float, default=0.1, help='quant decay.')
+#parser.add_argument('--val_part', type=float, default=0.1, help='quant decay.')
 
 args = parser.parse_args()
 
@@ -89,15 +90,15 @@ val_transformation = utils.JointCompose([
 
 VAL_PART = args.val_part
 
-trainset = MSRDemosaic(root=args.datapath, train=True, validation_part=VAL_PART, transform=transformation)
+trainset = AudioDataset(data_dir='data', train=True)
 train_loader = torch.utils.data.DataLoader(trainset, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers)
 
 statistic_loader = torch.utils.data.DataLoader(trainset, batch_size=4, shuffle=True, num_workers=args.num_workers)
 
-valset = MSRDemosaic(root=args.datapath, train=False, validation_part=VAL_PART, validation=True, transform=val_transformation)
-val_loader = torch.utils.data.DataLoader(valset, batch_size=1, shuffle=False, num_workers=args.num_workers)
+#valset = AudioDataset(data_dir=args.datapath, train=False, validation_part=VAL_PART, validation=True)
+#val_loader = torch.utils.data.DataLoader(valset, batch_size=1, shuffle=False, num_workers=args.num_workers)
 
-testset = MSRDemosaic(root=args.datapath, train=False, transform=val_transformation)
+testset = AudioDataset(data_dir=args.datapath, train=False)
 test_loader = torch.utils.data.DataLoader(testset, batch_size=1, shuffle=False, num_workers=args.num_workers)
 
 
@@ -248,18 +249,18 @@ def main():
     for epoch in tqdm(range(args.start_epoch,args.epochs), initial=args.start_epoch):
         t = time.time()
         train_loss = train(model, epoch, optimizer, criterion)
-        test_loss, test_psnr , decay_loss = test(model, criterion)
+        #test_loss, test_psnr , decay_loss = test(model, criterion)
         torch.save({'state_dict': model.state_dict(), 'epoch': epoch, 'optim': optimizer}, checkpoint_path)
 
-        if test_psnr > best_psnr:
-            best_psnr = test_psnr
-            shutil.copy(checkpoint_path, os.path.join(args.out_dir, 'best_checkpoint.pth.tar'))
+        #if test_psnr > best_psnr:
+        #    best_psnr = test_psnr
+        #    shutil.copy(checkpoint_path, os.path.join(args.out_dir, 'best_checkpoint.pth.tar'))
 
         dur = time.time() - t
-        tqdm.write('\nTrain loss: {:.3e}, Val loss: {:.3e}, Val PSNR: {:.3f}, Decay Loss: {:.3f}, Duration: {}\n'.format(train_loss, test_loss,test_psnr, decay_loss, dur))
-
+        #tqdm.write('\nTrain loss: {:.3e}, Val loss: {:.3e}, Val PSNR: {:.3f}, Decay Loss: {:.3f}, Duration: {}\n'.format(train_loss, test_loss,test_psnr, decay_loss, dur))
+        tqdm.write('\nTrain loss: {:.3e}, Duration: {}\n'.format(train_loss, dur))
         with open(csv_path, 'a') as f:
-            f.write('{},{},{},{},{},{}\n'.format(epoch, train_loss, test_loss,test_psnr, decay_loss, dur))
+            f.write('{},{},{}\n'.format(epoch, train_loss, dur))
 
         if epoch % 20 == 0:
             for layer in model.modules():
@@ -313,7 +314,7 @@ def train(model, epoch, optimizer, criterion):
 
 
         #loss = criterion(output, target)
-        loss_for_psnr, loss , weight_decay_loss = calc_loss(output, target, criterion, model,args)
+        loss_for_psnr, loss, weight_decay_loss = calc_loss(output, target, criterion, model,args)
         loss.backward()
         optimizer.step()
         train_loss += output.shape[0] * loss_for_psnr.item()  # sum up batch loss
@@ -360,8 +361,8 @@ def test(model, criterion, on_test_set=False):
     psnr = 0
     if on_test_set:
         loader = test_loader
-    else:
-        loader = val_loader
+    #else:
+    #    loader = val_loader
 
     for batch_idx, (data, target, fname) in enumerate(tqdm(loader)):
         if args.gpus is not None:
