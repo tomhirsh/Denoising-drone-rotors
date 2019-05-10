@@ -73,7 +73,7 @@ parser.add_argument('--copy_statistics', type=lambda x: (str(x).lower() == 'true
 
 parser.add_argument('--quant_decay', type=float, default=0.0005, help='quant decay.')
 
-#parser.add_argument('--val_part', type=float, default=0.1, help='quant decay.')
+parser.add_argument('--val_part', type=float, default=0, help='quant decay.')
 
 args = parser.parse_args()
 
@@ -98,7 +98,7 @@ statistic_loader = torch.utils.data.DataLoader(trainset, batch_size=4, shuffle=T
 #valset = AudioDataset(data_dir=args.datapath, train=False, validation_part=VAL_PART, validation=True)
 #val_loader = torch.utils.data.DataLoader(valset, batch_size=1, shuffle=False, num_workers=args.num_workers)
 
-testset = AudioDataset(data_dir=args.datapath, train=False)
+testset = AudioDataset(data_dir='data', train=False)
 test_loader = torch.utils.data.DataLoader(testset, batch_size=1, shuffle=False, num_workers=args.num_workers)
 
 
