@@ -6,7 +6,7 @@ import torch.utils.data as data
 # from PIL import Image
 import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split
-import pdb
+import h5py
 
 import deep_isp_utils as utils
 
@@ -23,7 +23,7 @@ class AudioDataset(data.Dataset):
 
     """
 
-
+    """
     def read_pair_imgs(self, gt_dir, input_dir, file_name, train=True):
         if train:
           file_gt_path = os.path.join(gt_dir, 'label_' + file_name)
@@ -41,18 +41,19 @@ class AudioDataset(data.Dataset):
         return input, gt
 
     """
-    def read_pair_imgs(self, id):
-        gt = plt.imread(os.path.join(self.dir_path, 'groundtruth', id + '.png'))[:, :, :3] - 0.5 # to check the mean ~0.17, std ~0.104   ,np.mean( np.resize( np.transpose(  plt.imread(os.path.join(self.dir_path, 'groundtruth', id + '.png'))[:, :, :3]  , (2,0,1) ) ,(3,290040) ) , axis=1 )
-        gt = np.transpose(gt, (2, 0, 1))
+    def read_pair_from_h5(self, gt_group, input_group, file_name):
+        gt = np.array(gt_group.get(file_name))
+        gt = np.expand_dims(gt, axis=0)
 
-        mosaiced = plt.imread(os.path.join(self.dir_path, 'input', id + '.png'))
-        image = utils.mosaic_then_demosaic(mosaiced, 'rggb') - 0.5
-        return image, gt
-    """
+        input = np.array(input_group.get(file_name))
+        input = np.expand_dims(input, axis=0)
 
-    def __init__(self, data_dir, train=True, validation=False, validation_part=0.1, transform=None):
+        return input, gt
+
+
+    def __init__(self, data_h5_path, train=True, validation=False, validation_part=0.1, transform=None):
         assert (not (train and validation))
-        self.data_dir = data_dir
+        self.data_h5_path = data_h5_path
         self.transform = transform
         self.train = train  # training set or test set
         self.validation = validation  # validation set
@@ -60,18 +61,21 @@ class AudioDataset(data.Dataset):
         # if not self._check_integrity():
         #    raise RuntimeError('Dataset not found or corrupted.')
 
+        hf = h5py.File(self.data_h5_path, 'r')
+
         # now load the picked numpy arrays
         if self.train or self.validation:
-            gt_dir = os.path.join(data_dir, 'label')
-            input_dir = os.path.join(data_dir, 'train')
+            train_sub = hf.get('train')
+            input_sub = train_sub.get('input')
+            gt_sub = train_sub.get('gt')
 
-            self.train_list = [f[6:] for f in os.listdir(gt_dir)]  # TODO: check splitting
+            self.train_filenames = list(input_sub.keys())
 
             self.train_data = []
             self.train_labels = []
 
-            for f in self.train_list:
-                im, gt = self.read_pair_imgs(gt_dir, input_dir, f, train=True)
+            for f in self.train_filenames:
+                im, gt = self.read_pair_from_h5(gt_sub, input_sub, f)
                 self.train_data.append(im)
                 self.train_labels.append(gt)
 
@@ -80,18 +84,18 @@ class AudioDataset(data.Dataset):
                                                                                     self.train_labels,
                                                                                     test_size=validation_part,
                                                                                     random_state=32)
+        else:
+            test_sub = hf.get('test')
+            input_sub = test_sub.get('input')
+            gt_sub = test_sub.get('gt')
 
-        else: # in order to view images plt.imshow(gt.transpose(1, 2, 0)) ,plt.savefig('rotor.png')
-            gt_dir = os.path.join(data_dir, 'test_dir_sounds')
-            input_dir = os.path.join(data_dir, 'test_combined')
+            self.test_filenames = list(input_sub.keys())
 
             self.test_data = []
             self.test_labels = []
 
-            self.test_filenames = [f[len('test_sounds_'):] for f in os.listdir(gt_dir)]  # TODO: check splitting
-
             for f in self.test_filenames:
-                im, gt = self.read_pair_imgs(gt_dir, input_dir, f, train=False)
+                im, gt = self.read_pair_from_h5(gt_sub, input_sub, f)
                 self.test_data.append(im)
                 self.test_labels.append(gt)
 
