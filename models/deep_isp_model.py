@@ -100,6 +100,7 @@ class DenoisingNet(UNIQNet):
 
         final_image = image_out + quant_image
         # todo: try to add sigmoid to output to get 0-1 output
+        final_image = torch.sigmoid(final_image)
         # final_image = image_out + image
 
         return final_image
