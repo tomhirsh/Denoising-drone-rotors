@@ -98,9 +98,7 @@ train_loader = torch.utils.data.DataLoader(trainset, batch_size=args.batch_size,
 
 statistic_loader = torch.utils.data.DataLoader(trainset, batch_size=4, shuffle=True, num_workers=args.num_workers)
 
-#valset = AudioDataset(data_dir=args.datapath, train=False, validation_part=
-
-, validation=True)
+#valset = AudioDataset(data_dir=args.datapath, train=False, validation_part=VAL_PART, validation=True)
 #val_loader = torch.utils.data.DataLoader(valset, batch_size=1, shuffle=False, num_workers=args.num_workers)
 
 testset = AudioDataset(data_h5_path='preprocess_audio/data.h5', train=False)
