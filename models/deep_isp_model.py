@@ -7,7 +7,7 @@ import numpy as np
 
 import actquant
 import quantize
-from layers import ResConvLayer , Conv2d
+from layers import ResConvLayer , Conv2d, NUM_CHANNELS
 from uniq import UNIQNet
 #from quantize import quantize
 
@@ -40,7 +40,7 @@ class DenoisingNet(UNIQNet):
         self.in_channels = in_channels
 
         self.input_padder = nn.ReflectionPad2d(1)
-        self.conv1 = Conv2d(in_channels, num_filters - 1, kernel_size=3)
+        self.conv1 = Conv2d(in_channels, num_filters-NUM_CHANNELS, kernel_size=3)
 
         self.nonlinearity1 = self.get_feature_activation()
 
@@ -83,7 +83,7 @@ class DenoisingNet(UNIQNet):
             modules[name] = module
         # Last module has different number of outputs
         layer_num = self.num_denoise_layers - 1
-        denoise_layer = ResConvLayer(self.num_filters, self.in_channels, self.get_feature_activation(), 'reflect', None, act_quant = self.act_quant, act_bitwidth=self.act_bitwidth)
+        denoise_layer = ResConvLayer(self.num_filters, NUM_CHANNELS, self.get_feature_activation(), 'reflect', None, act_quant = self.act_quant, act_bitwidth=self.act_bitwidth)
         modules[stage_name + "_{}".format(layer_num)] = denoise_layer
 
         return nn.Sequential(modules)
@@ -91,12 +91,15 @@ class DenoisingNet(UNIQNet):
     def forward(self, image):
 
         x = self.nonlinearity1(self.conv1(self.input_padder(image)))
+        # First feature layer contains rpm, the rest is single channel 
+        image = image[:,:NUM_CHANNELS,:]
         image_out = self.denoising(torch.cat((x, image), 1))
         # Quantizing input image
         image_quant_scale = (2**16-1)/(torch.min(image) - torch.max(image))
         quant_image = torch.round(image_quant_scale * image)/image_quant_scale
 
         final_image = image_out + quant_image
+        # todo: try to add sigmoid to output to get 0-1 output
         # final_image = image_out + image
 
         return final_image

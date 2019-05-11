@@ -76,6 +76,12 @@ class AudioDataset(data.Dataset):
 
             for f in self.train_filenames:
                 im, gt = self.read_pair_from_h5(gt_sub, input_sub, f)
+                
+                # add rpm as channel
+                rpm = f.split("_")[-2]
+                rpm_channel = np.full_like(im, rpm)
+                im = np.append(im, rpm_channel, 0)
+                
                 self.train_data.append(im)
                 self.train_labels.append(gt)
 
@@ -96,6 +102,13 @@ class AudioDataset(data.Dataset):
 
             for f in self.test_filenames:
                 im, gt = self.read_pair_from_h5(gt_sub, input_sub, f)
+
+                # add rpm as channel
+                rpm = f.split("_")[-2]
+                rpm_channel = np.full_like(im, rpm)
+                im = np.append(im, rpm_channel, 0)
+                self.test_data.append(im)
+
                 self.test_data.append(im)
                 self.test_labels.append(gt)
 

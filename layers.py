@@ -3,6 +3,7 @@ import torch.nn as nn
 import numpy as np
 import quantize
 import actquant
+NUM_CHANNELS = 1
 
 class Conv2d(nn.Conv2d):
     """ Create registered buffer for layer base for quantization"""
@@ -17,6 +18,7 @@ class Conv2d(nn.Conv2d):
         self.register_buffer('initial_clamp_value', torch.ones(1))  # Attempt to enable multi-GPU
 
 class ResConvLayer(nn.Module):
+    # todo: try image non linearity sigmoid to stay in 0-1 range
     def __init__(self, input_filters, out_filters=32, nonlinearity=nn.ReLU, padding='reflect', image_nonlinearity=nn.Tanh, act_quant=False, act_bitwidth=8):
         super(ResConvLayer, self).__init__()
 
@@ -27,17 +29,20 @@ class ResConvLayer(nn.Module):
 
         if self.padding == 'reflect':
             self.padder = nn.ReflectionPad2d(1)
-        if self.out_filters > 1:
-            self.conv_features = Conv2d(input_filters, out_filters - 1, kernel_size=3,
+        if self.out_filters > NUM_CHANNELS:
+            self.conv_features = Conv2d(input_filters, out_filters - NUM_CHANNELS, kernel_size=3,
                                            padding=1 if padding == 'zeros' else 0)
             self.features_activation = nonlinearity
-        self.conv_image = Conv2d(input_filters, 1, kernel_size=3, padding=1 if padding == 'zeros' else 0)
+        self.conv_image = Conv2d(input_filters, NUM_CHANNELS, kernel_size=3, padding=1 if padding == 'zeros' else 0)
+        # if(out_filters == 1):
+        #     self.conv_image = Conv2d(input_filters, out_filters, kernel_size=3, padding=1 if padding == 'zeros' else 0)
+        
         self.image_activation = image_nonlinearity() if image_nonlinearity is not None else None
         self.pic_act_quant =  actquant.ActQuantDeepIspPic(act_quant=act_quant,act_bitwidth = 8) # the picture is always quant to 8 bit
         self.dropout = nn.Dropout2d(p=0.05)
 
     def forward(self, input):
-        image_input = input[:, -1:, :, :]
+        image_input = input[:, -NUM_CHANNELS:, :, :]
         # input = torch.cat((features_input, image_input), 1)
 
 
@@ -45,8 +50,9 @@ class ResConvLayer(nn.Module):
             input_padded = self.padder(input) #TODO we can try doing reflect to image , and zero to feature
 
         if (self.act_quant): # TODO approve and use ActQuant. right now it's not layer by layer
-            feature_padded_input = input_padded[:, :63, :, :]
-            image_padded_input = input_padded[:, -1:, :, :]
+            num_of_filters = input_padded.shape[1]
+            feature_padded_input = input_padded[:, :num_of_filters-NUM_CHANNELS, :, :]
+            image_padded_input = input_padded[:, -NUM_CHANNELS:, :, :]
 
             #quant picture toward conv
             #quant_image_input = quantize.act_clamp_pic(image_padded_input)
@@ -66,7 +72,7 @@ class ResConvLayer(nn.Module):
 
         #image_out = torch.clamp(image_out , -0.5, 0.5) #TODO try to add it in training
 
-        if self.out_filters > 1:
+        if self.out_filters > NUM_CHANNELS:
 
 
             features_out = self.features_activation(self.conv_features(input_padded))
