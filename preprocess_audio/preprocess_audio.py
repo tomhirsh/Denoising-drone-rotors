@@ -101,43 +101,44 @@ def parse_cli_args():
     args = parser.parse_args()
     return args
 
+if __name__ == '__main__':
 
-# init args and serial
-args = parse_cli_args()
+    # init args and serial
+    args = parse_cli_args()
 
-# get data dir, and create sub-dirs to save the spectograms
-cur_dir = os.getcwd()
-par_dir = os.path.abspath(os.path.join(cur_dir, os.pardir))
+    # get data dir, and create sub-dirs to save the spectograms
+    cur_dir = os.getcwd()
+    par_dir = os.path.abspath(os.path.join(cur_dir, os.pardir))
 
-data_dir = os.path.join(par_dir, args.data_dir)
+    data_dir = os.path.join(par_dir, args.data_dir)
 
-rotors_dir = os.path.join(data_dir, args.rotors_dir)
-sounds_dir = os.path.join(data_dir, args.sounds_dir)
+    rotors_dir = os.path.join(data_dir, args.rotors_dir)
+    sounds_dir = os.path.join(data_dir, args.sounds_dir)
 
-# given two folders, creates train:label:test folders
-sounds_list = [f for f in os.listdir(sounds_dir)]
-rotors_list = [f for f in os.listdir(rotors_dir)]
-# split to train:test
-sounds_train, sounds_test = model_selection.train_test_split(sounds_list, train_size=0.9)
-rotors_train, rotors_test = model_selection.train_test_split(rotors_list, train_size=0.9)
-print(f'train sounds size: {len(sounds_train)}, train rotors size: {len(rotors_train)}')
-print(f'test sounds size: {len(sounds_test)}, test rotors size: {len(rotors_test)}')
+    # given two folders, creates train:label:test folders
+    sounds_list = [f for f in os.listdir(sounds_dir)]
+    rotors_list = [f for f in os.listdir(rotors_dir)]
+    # split to train:test
+    sounds_train, sounds_test = model_selection.train_test_split(sounds_list, train_size=0.9)
+    rotors_train, rotors_test = model_selection.train_test_split(rotors_list, train_size=0.9)
+    print(f'train sounds size: {len(sounds_train)}, train rotors size: {len(rotors_train)}')
+    print(f'test sounds size: {len(sounds_test)}, test rotors size: {len(rotors_test)}')
 
-N_FFT = 1024
+    N_FFT = 1024
 
-# save the dataset as np.arrays in h5 file
-hf = h5py.File('data1.h5', 'w')
-# create train and test spectograms
-print('processing train files')
-# create group for train in the h5 file
-train = hf.create_group('train')
-# create the spectograms for train
-train_dirs_list = [sounds_dir, rotors_dir]
-fs, N_CHANNELS = create_train_test_spectograms_h5file(train_dirs_list, sounds_train, rotors_train, N_FFT, h5_group=train, phase='train')
-print('processing test files')
-# create group for test in the h5 file
-test = hf.create_group('test')
-# create the spectograms for test
-test_dirs_list = [sounds_dir, rotors_dir]
-create_train_test_spectograms_h5file(test_dirs_list, sounds_test, rotors_test, N_FFT, h5_group=test, phase='test')
-hf.close()
+    # save the dataset as np.arrays in h5 file
+    hf = h5py.File('data1.h5', 'w')
+    # create train and test spectograms
+    print('processing train files')
+    # create group for train in the h5 file
+    train = hf.create_group('train')
+    # create the spectograms for train
+    train_dirs_list = [sounds_dir, rotors_dir]
+    fs, N_CHANNELS = create_train_test_spectograms_h5file(train_dirs_list, sounds_train, rotors_train, N_FFT, h5_group=train, phase='train')
+    print('processing test files')
+    # create group for test in the h5 file
+    test = hf.create_group('test')
+    # create the spectograms for test
+    test_dirs_list = [sounds_dir, rotors_dir]
+    create_train_test_spectograms_h5file(test_dirs_list, sounds_test, rotors_test, N_FFT, h5_group=test, phase='test')
+    hf.close()
