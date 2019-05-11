@@ -37,9 +37,11 @@ def add_augmentation(sound_arr, fs = 22050, augmentation=0):
 
 
 # reconstraction is taken from https://github.com/vadim-v-lebedev/audio_style_tranfer/blob/master/audio_style_transfer.ipynb
-def spectogram_to_wav(spectogram_content, dst_path, N_CHANNELS, N_FFT, fs):
+def spectogram_to_wav(spectogram_content, N_CHANNELS, N_FFT, fs, dst_path=None):
+    spectogram_content = np.transpose(spectogram_content, (2,0,1))
     a = np.zeros_like(spectogram_content[0])
     a[:N_CHANNELS, :] = np.exp(spectogram_content[0]) - 1
+    print(a.shape)
 
     # reconstruction
     p = 2 * np.pi * np.random.random_sample(a.shape) - np.pi
@@ -48,7 +50,10 @@ def spectogram_to_wav(spectogram_content, dst_path, N_CHANNELS, N_FFT, fs):
         x = librosa.istft(s)
         p = np.angle(librosa.stft(x, N_FFT))
 
-    librosa.output.write_wav(dst_path, x, fs)
+    if dst_path:
+        librosa.output.write_wav(dst_path, x, fs)
+        
+    return x
 
 
 """
@@ -118,46 +123,47 @@ def parse_cli_args():
     args = parser.parse_args()
     return args
 
+if __name__ == '__main__':
 
-# init args and serial
-args = parse_cli_args()
+    # init args and serial
+    args = parse_cli_args()
 
-# get data dir, and create sub-dirs to save the spectograms
-cur_dir = os.getcwd()
-par_dir = os.path.abspath(os.path.join(cur_dir, os.pardir))
+    # get data dir, and create sub-dirs to save the spectograms
+    cur_dir = os.getcwd()
+    par_dir = os.path.abspath(os.path.join(cur_dir, os.pardir))
 
-data_dir = os.path.join(par_dir, args.data_dir)
+    data_dir = os.path.join(par_dir, args.data_dir)
 
-rotors_dir = os.path.join(data_dir, args.rotors_dir)
-sounds_dir = os.path.join(data_dir, args.sounds_dir)
+    rotors_dir = os.path.join(data_dir, args.rotors_dir)
+    sounds_dir = os.path.join(data_dir, args.sounds_dir)
 
-# create sub-directories for the spectograms (preprocessing results)
+    # create sub-directories for the spectograms (preprocessing results)
 
-train_dir = os.path.join(data_dir, 'train')
-label_dir = os.path.join(data_dir, 'label')
-os.mkdir(train_dir)
-os.mkdir(label_dir)
+    train_dir = os.path.join(data_dir, 'train')
+    label_dir = os.path.join(data_dir, 'label')
+    os.mkdir(train_dir)
+    os.mkdir(label_dir)
 
-test_dir_combined = os.path.join(data_dir, 'test_combined')
-test_dir_sounds = os.path.join(data_dir, 'test_dir_sounds')
-os.mkdir(test_dir_combined)
-os.mkdir(test_dir_sounds)
+    test_dir_combined = os.path.join(data_dir, 'test_combined')
+    test_dir_sounds = os.path.join(data_dir, 'test_dir_sounds')
+    os.mkdir(test_dir_combined)
+    os.mkdir(test_dir_sounds)
 
-# given two folders, creates train:label:test folders
-sounds_list = [f for f in os.listdir(sounds_dir)]
-rotors_list = [f for f in os.listdir(rotors_dir)]
-# split to train:test
-sounds_train, sounds_test = model_selection.train_test_split(sounds_list, train_size=0.9)
-rotors_train, rotors_test = model_selection.train_test_split(rotors_list, train_size=0.9)
-print(f'train sounds size: {len(sounds_train)}, train rotors size: {len(rotors_train)}')
-print(f'test sounds size: {len(sounds_test)}, test rotors size: {len(rotors_test)}')
+    # given two folders, creates train:label:test folders
+    sounds_list = [f for f in os.listdir(sounds_dir)]
+    rotors_list = [f for f in os.listdir(rotors_dir)]
+    # split to train:test
+    sounds_train, sounds_test = model_selection.train_test_split(sounds_list, train_size=0.9)
+    rotors_train, rotors_test = model_selection.train_test_split(rotors_list, train_size=0.9)
+    print(f'train sounds size: {len(sounds_train)}, train rotors size: {len(rotors_train)}')
+    print(f'test sounds size: {len(sounds_test)}, test rotors size: {len(rotors_test)}')
 
-N_FFT = 1024
+    N_FFT = 1024
 
-# create train and test spectograms
-print('processing train files')
-train_dirs_list = [sounds_dir, rotors_dir,train_dir, label_dir]
-fs, N_CHANNELS = create_train_test_spectograms(train_dirs_list, sounds_train, rotors_train, N_FFT, phase='train')
-print('processing test files')
-test_dirs_list = [sounds_dir, rotors_dir, test_dir_combined, test_dir_sounds]
-create_train_test_spectograms(test_dirs_list, sounds_test, rotors_test, N_FFT, phase='test')
+    # create train and test spectograms
+    print('processing train files')
+    train_dirs_list = [sounds_dir, rotors_dir,train_dir, label_dir]
+    fs, N_CHANNELS = create_train_test_spectograms(train_dirs_list, sounds_train, rotors_train, N_FFT, phase='train')
+    print('processing test files')
+    test_dirs_list = [sounds_dir, rotors_dir, test_dir_combined, test_dir_sounds]
+    create_train_test_spectograms(test_dirs_list, sounds_test, rotors_test, N_FFT, phase='test')

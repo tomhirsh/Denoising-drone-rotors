@@ -31,51 +31,54 @@ else:
 #recommanded cmd: --batch_size=1 --num_denoise_layers=20 --num_workers=0 --start-epoch=6000 --resume=output\pretrained\best_checkpoint.pth.tar --quant=True
 
 parser = argparse.ArgumentParser(description='Denoising training with PyTorch')
-parser.add_argument('--seed', default=0, type=int, metavar='N', help='random seed')
-parser.add_argument('--start-epoch', default=0, type=int, metavar='N', help='manual epoch number (useful on restarts)')
-parser.add_argument('--epochs', type=int, default=5000, help='Number of epochs to train.')
-parser.add_argument('--batch_size', type=int, default=16, help='Number of epochs to train.')
-parser.add_argument('--num_denoise_layers', type=int, default=20, help='num of layers.')
-parser.add_argument('--learning_rate', '-lr', type=float, default=5e-5, help='The learning rate.')
-parser.add_argument('--decay', '-d', type=float, default=0, help='Weight decay (L2 penalty).')
-parser.add_argument('--gpus', default=GPUS_DEFAULT, help='List of GPUs used for training - e.g 0,1,3')
-parser.add_argument('--datapath', type=str, default=DATA_PATH, help='Path to MSR-Demosaicing dataset')
-parser.add_argument('--resume', type=str, default=None, help='Path to checkpoint file')
-parser.add_argument('--out_dir', type=str, default=OUTPUT_DIR, help='Path to save model and results')
+args = None
 
-parser.add_argument('--quant_epoch_step', type=int, default=50, help='quant_bitwidth.')
-parser.add_argument('--num_workers', type=int, default=4, help='Num of workers for data.')
+def parse_args():
+    parser.add_argument('--seed', default=0, type=int, metavar='N', help='random seed')
+    parser.add_argument('--start-epoch', default=0, type=int, metavar='N', help='manual epoch number (useful on restarts)')
+    parser.add_argument('--epochs', type=int, default=5000, help='Number of epochs to train.')
+    parser.add_argument('--batch_size', type=int, default=16, help='Number of epochs to train.')
+    parser.add_argument('--num_denoise_layers', type=int, default=20, help='num of layers.')
+    parser.add_argument('--learning_rate', '-lr', type=float, default=5e-5, help='The learning rate.')
+    parser.add_argument('--decay', '-d', type=float, default=0, help='Weight decay (L2 penalty).')
+    parser.add_argument('--gpus', default=GPUS_DEFAULT, help='List of GPUs used for training - e.g 0,1,3')
+    parser.add_argument('--datapath', type=str, default=DATA_PATH, help='Path to MSR-Demosaicing dataset')
+    parser.add_argument('--resume', type=str, default=None, help='Path to checkpoint file')
+    parser.add_argument('--out_dir', type=str, default=OUTPUT_DIR, help='Path to save model and results')
 
-parser.add_argument('--quant_start_stage', type=int, default=0, help='Num of workers for data.')
+    parser.add_argument('--quant_epoch_step', type=int, default=50, help='quant_bitwidth.')
+    parser.add_argument('--num_workers', type=int, default=4, help='Num of workers for data.')
 
-parser.add_argument('--inject_noise', default=False, type=lambda x: (str(x).lower() == 'true'), help='use preproccesing for the grad')
-parser.add_argument('--show_test_result', type=lambda x: (str(x).lower() == 'true'), default=False, help='show figures of test result')
-parser.add_argument('--quant', default=False, type=lambda x: (str(x).lower() == 'true') , help='use preproccesing for the grad')
-parser.add_argument('--quant_bitwidth', type=int, default=32, help='quant_bitwidth.')
+    parser.add_argument('--quant_start_stage', type=int, default=0, help='Num of workers for data.')
 
-parser.add_argument('--inject_act_noise', default=False, type=lambda x: (str(x).lower() == 'true'), help='use preproccesing for the grad')
-parser.add_argument('--act_quant', default=False, type=lambda x: (str(x).lower() == 'true') , help='use preproccesing for the grad')
-parser.add_argument('--act_bitwidth', type=int, default=32, help='quant_bitwidth.')
-parser.add_argument('--step', type=int, default=19, help='amount of split the layer in quant.')
+    parser.add_argument('--inject_noise', default=False, type=lambda x: (str(x).lower() == 'true'), help='use preproccesing for the grad')
+    parser.add_argument('--show_test_result', type=lambda x: (str(x).lower() == 'true'), default=False, help='show figures of test result')
+    parser.add_argument('--quant', default=False, type=lambda x: (str(x).lower() == 'true') , help='use preproccesing for the grad')
+    parser.add_argument('--quant_bitwidth', type=int, default=32, help='quant_bitwidth.')
 
-parser.add_argument('--set_gpu', type=lambda x: (str(x).lower() == 'true'), default=False, help='show figures of test result')
-parser.add_argument('--adaptive_lr', type=lambda x: (str(x).lower() == 'true'), default=True, help='show figures of test result')
+    parser.add_argument('--inject_act_noise', default=False, type=lambda x: (str(x).lower() == 'true'), help='use preproccesing for the grad')
+    parser.add_argument('--act_quant', default=False, type=lambda x: (str(x).lower() == 'true') , help='use preproccesing for the grad')
+    parser.add_argument('--act_bitwidth', type=int, default=32, help='quant_bitwidth.')
+    parser.add_argument('--step', type=int, default=19, help='amount of split the layer in quant.')
 
-parser.add_argument('--enable_decay', type=lambda x: (str(x).lower() == 'true'), default=False, help='decay_enable')
-parser.add_argument('--weight_relu', type=lambda x: (str(x).lower() == 'true'), default=False, help='weight_relu')
-parser.add_argument('--weight_grad_after_quant', type=lambda x: (str(x).lower() == 'true'), default=False, help='weight_grad_after_quant')
-parser.add_argument('--random_inject_noise', type=lambda x: (str(x).lower() == 'true'), default=False, help='random_inject_noise')
+    parser.add_argument('--set_gpu', type=lambda x: (str(x).lower() == 'true'), default=False, help='show figures of test result')
+    parser.add_argument('--adaptive_lr', type=lambda x: (str(x).lower() == 'true'), default=True, help='show figures of test result')
 
-parser.add_argument('--stage_only_clamp', type=lambda x: (str(x).lower() == 'true'), default=False, help='stage_only_clamp')
-parser.add_argument('--wrpn', type=lambda x: (str(x).lower() == 'true'), default=False, help='wrpn quantization')
+    parser.add_argument('--enable_decay', type=lambda x: (str(x).lower() == 'true'), default=False, help='decay_enable')
+    parser.add_argument('--weight_relu', type=lambda x: (str(x).lower() == 'true'), default=False, help='weight_relu')
+    parser.add_argument('--weight_grad_after_quant', type=lambda x: (str(x).lower() == 'true'), default=False, help='weight_grad_after_quant')
+    parser.add_argument('--random_inject_noise', type=lambda x: (str(x).lower() == 'true'), default=False, help='random_inject_noise')
 
-parser.add_argument('--copy_statistics', type=lambda x: (str(x).lower() == 'true'), default=True, help='copy_statistics')
+    parser.add_argument('--stage_only_clamp', type=lambda x: (str(x).lower() == 'true'), default=False, help='stage_only_clamp')
+    parser.add_argument('--wrpn', type=lambda x: (str(x).lower() == 'true'), default=False, help='wrpn quantization')
 
-parser.add_argument('--quant_decay', type=float, default=0.0005, help='quant decay.')
+    parser.add_argument('--copy_statistics', type=lambda x: (str(x).lower() == 'true'), default=True, help='copy_statistics')
 
-parser.add_argument('--val_part', type=float, default=0, help='quant decay.')
+    parser.add_argument('--quant_decay', type=float, default=0.0005, help='quant decay.')
 
-args = parser.parse_args()
+    parser.add_argument('--val_part', type=float, default=0, help='quant decay.')
+
+    args = parser.parse_args()
 
 transformation = utils.JointCompose([
     utils.JointHorizontalFlip(),
@@ -95,7 +98,9 @@ train_loader = torch.utils.data.DataLoader(trainset, batch_size=args.batch_size,
 
 statistic_loader = torch.utils.data.DataLoader(trainset, batch_size=4, shuffle=True, num_workers=args.num_workers)
 
-#valset = AudioDataset(data_dir=args.datapath, train=False, validation_part=VAL_PART, validation=True)
+#valset = AudioDataset(data_dir=args.datapath, train=False, validation_part=
+
+, validation=True)
 #val_loader = torch.utils.data.DataLoader(valset, batch_size=1, shuffle=False, num_workers=args.num_workers)
 
 testset = AudioDataset(data_dir='data', train=False)
@@ -415,4 +420,5 @@ def plot_weight_quant_error_statistic(model, save_path):
     return
 
 if __name__ == '__main__':
+    parse_args()
     main()
