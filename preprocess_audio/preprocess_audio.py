@@ -6,7 +6,8 @@ import numpy as np
 from sklearn import model_selection
 import argparse
 import random
-
+import h5py
+# conda install h5py
 
 """
 options for augmentation:
@@ -36,21 +37,6 @@ def add_augmentation(sound_arr, fs = 22050, augmentation=0):
     return augmented_sound
 
 
-# reconstraction is taken from https://github.com/vadim-v-lebedev/audio_style_tranfer/blob/master/audio_style_transfer.ipynb
-def spectogram_to_wav(spectogram_content, dst_path, N_CHANNELS, N_FFT, fs):
-    a = np.zeros_like(spectogram_content[0])
-    a[:N_CHANNELS, :] = np.exp(spectogram_content[0]) - 1
-
-    # reconstruction
-    p = 2 * np.pi * np.random.random_sample(a.shape) - np.pi
-    for i in range(500):
-        s = a * np.exp(1j * p)
-        x = librosa.istft(s)
-        p = np.angle(librosa.stft(x, N_FFT))
-
-    librosa.output.write_wav(dst_path, x, fs)
-
-
 """
 Given two np.array that were read using librosa.load, combines both.
 volume1, volume2 - amount (0 to 1) for wanted volume to combine
@@ -69,8 +55,12 @@ def create_spectogram(src_audio, N_FFT):
     return np.squeeze(spectogram_content, axis=0), N_CHANNELS
 
 
-def create_train_test_spectograms(dir_list, sounds_train, rotors_train , N_FFT, phase='train'):
-    sound_dir, rotors_dir, train_dir, label_dir = dir_list
+def create_train_test_spectograms_h5file(dir_list, sounds_train, rotors_train , N_FFT, h5_group, phase='train'):
+    # create sub-groupt for input (combined sounds) and gt (ground truth - only sounds)
+    input_group = h5_group.create_group('input')
+    gt_group = h5_group.create_group('gt')
+
+    sound_dir, rotors_dir = dir_list
     for sound in sounds_train:
         print(f'processing {sound}')
         sound_path = os.path.join(sound_dir, sound)
@@ -88,22 +78,15 @@ def create_train_test_spectograms(dir_list, sounds_train, rotors_train , N_FFT, 
             volume_rotors = random.uniform(0.1, 0.3)
             combined_audio = combine_two_wavs(rotor_audio, sound_audio, volume1=volume_rotors)
             spectogram_combined, N_CHANNELS = create_spectogram(combined_audio, N_FFT)
-            # save combined rotor and sound
-            dst_name = sound[:-4] + '_' + rotor[:-4] + '.png'
-            if (phase == 'train'):
-                dst_train_name = 'train_'+dst_name
-                dst_label_name = 'label_' + dst_name
-            else:
-                dst_train_name = 'test_combined_' + dst_name
-                dst_label_name = 'test_sounds_' + dst_name
-            dst_path = os.path.join(train_dir, dst_train_name)
-            plt.imsave(dst_path, spectogram_combined)
-            #print(f'combined spectogram {dst_train_name} saved.')
-            # save labels sound only
-            dst_path = os.path.join(label_dir, dst_label_name)
-            plt.imsave(dst_path, spectogram_sound_label)
-            #print(f'sound spectogram {dst_label_name} saved.')
+            # save data
+            dst_name = sound[:-4] + '_' + rotor[:-4]
+            input_group.create_dataset(dst_name, data=spectogram_combined)
+            gt_group.create_dataset(dst_name, data=spectogram_sound_label)
     return fs, N_CHANNELS
+
+
+def save_spectogram_as_png(dst_path, spectogram):
+    plt.imsave(dst_path, spectogram)
 
 
 """
@@ -131,18 +114,6 @@ data_dir = os.path.join(par_dir, args.data_dir)
 rotors_dir = os.path.join(data_dir, args.rotors_dir)
 sounds_dir = os.path.join(data_dir, args.sounds_dir)
 
-# create sub-directories for the spectograms (preprocessing results)
-
-train_dir = os.path.join(data_dir, 'train')
-label_dir = os.path.join(data_dir, 'label')
-os.mkdir(train_dir)
-os.mkdir(label_dir)
-
-test_dir_combined = os.path.join(data_dir, 'test_combined')
-test_dir_sounds = os.path.join(data_dir, 'test_dir_sounds')
-os.mkdir(test_dir_combined)
-os.mkdir(test_dir_sounds)
-
 # given two folders, creates train:label:test folders
 sounds_list = [f for f in os.listdir(sounds_dir)]
 rotors_list = [f for f in os.listdir(rotors_dir)]
@@ -154,10 +125,19 @@ print(f'test sounds size: {len(sounds_test)}, test rotors size: {len(rotors_test
 
 N_FFT = 1024
 
+# save the dataset as np.arrays in h5 file
+hf = h5py.File('data1.h5', 'w')
 # create train and test spectograms
 print('processing train files')
-train_dirs_list = [sounds_dir, rotors_dir,train_dir, label_dir]
-fs, N_CHANNELS = create_train_test_spectograms(train_dirs_list, sounds_train, rotors_train, N_FFT, phase='train')
+# create group for train in the h5 file
+train = hf.create_group('train')
+# create the spectograms for train
+train_dirs_list = [sounds_dir, rotors_dir]
+fs, N_CHANNELS = create_train_test_spectograms_h5file(train_dirs_list, sounds_train, rotors_train, N_FFT, h5_group=train, phase='train')
 print('processing test files')
-test_dirs_list = [sounds_dir, rotors_dir, test_dir_combined, test_dir_sounds]
-create_train_test_spectograms(test_dirs_list, sounds_test, rotors_test, N_FFT, phase='test')
+# create group for test in the h5 file
+test = hf.create_group('test')
+# create the spectograms for test
+test_dirs_list = [sounds_dir, rotors_dir]
+create_train_test_spectograms_h5file(test_dirs_list, sounds_test, rotors_test, N_FFT, h5_group=test, phase='test')
+hf.close()
