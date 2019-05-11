@@ -3,8 +3,8 @@ import librosa
 import h5py
 
 # reconstraction is taken from https://github.com/vadim-v-lebedev/audio_style_tranfer/blob/master/audio_style_transfer.ipynb
-def spectogram_to_wav(spectogram_content, dst_path, N_CHANNELS, N_FFT, fs):
-    #spectogram_content = np.expand_dims(spectogram_content, axis=0)
+def spectogram_to_wav(spectogram_content, N_CHANNELS, N_FFT, fs, dst_path=None):
+    spectogram_content = np.expand_dims(spectogram_content, axis=0)
     a = np.zeros_like(spectogram_content[0])
     a[:N_CHANNELS, :] = np.exp(spectogram_content[0]) - 1
 
@@ -15,7 +15,10 @@ def spectogram_to_wav(spectogram_content, dst_path, N_CHANNELS, N_FFT, fs):
         x = librosa.istft(s)
         p = np.angle(librosa.stft(x, N_FFT))
 
-    librosa.output.write_wav(dst_path, x, fs)
+    if dst_path:
+        librosa.output.write_wav(dst_path, x, fs)
+    
+    return x
 
 
 """

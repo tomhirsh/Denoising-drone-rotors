@@ -40,7 +40,7 @@ class DenoisingNet(UNIQNet):
         self.in_channels = in_channels
 
         self.input_padder = nn.ReflectionPad2d(1)
-        self.conv1 = Conv2d(in_channels, num_filters - 3, kernel_size=3)
+        self.conv1 = Conv2d(in_channels, num_filters - 1, kernel_size=3)
 
         self.nonlinearity1 = self.get_feature_activation()
 
@@ -84,7 +84,7 @@ class DenoisingNet(UNIQNet):
         # Last module has different number of outputs
         layer_num = self.num_denoise_layers - 1
         denoise_layer = ResConvLayer(self.num_filters, self.in_channels, self.get_feature_activation(), 'reflect', None, act_quant = self.act_quant, act_bitwidth=self.act_bitwidth)
-        modules[stage_name + str(layer_num)] = denoise_layer
+        modules[stage_name + "_{}".format(layer_num)] = denoise_layer
 
         return nn.Sequential(modules)
 
@@ -92,7 +92,6 @@ class DenoisingNet(UNIQNet):
 
         x = self.nonlinearity1(self.conv1(self.input_padder(image)))
         image_out = self.denoising(torch.cat((x, image), 1))
-
         # Quantizing input image
         image_quant_scale = (2**16-1)/(torch.min(image) - torch.max(image))
         quant_image = torch.round(image_quant_scale * image)/image_quant_scale
