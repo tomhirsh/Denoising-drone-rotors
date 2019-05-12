@@ -83,7 +83,7 @@ class DenoisingNet(UNIQNet):
             modules[name] = module
         # Last module has different number of outputs
         layer_num = self.num_denoise_layers - 1
-        denoise_layer = ResConvLayer(self.num_filters, NUM_CHANNELS, self.get_feature_activation(), 'reflect', None, act_quant = self.act_quant, act_bitwidth=self.act_bitwidth)
+        denoise_layer = ResConvLayer(self.num_filters, NUM_CHANNELS, self.get_feature_activation(), 'reflect', nn.Sigmoid, act_quant = self.act_quant, act_bitwidth=self.act_bitwidth)
         modules[stage_name + "_{}".format(layer_num)] = denoise_layer
 
         return nn.Sequential(modules)
@@ -100,7 +100,7 @@ class DenoisingNet(UNIQNet):
 
         final_image = image_out + quant_image
         # todo: try to add sigmoid to output to get 0-1 output
-        final_image = torch.sigmoid(final_image)
+        # final_image = torch.sigmoid(final_image)
         # final_image = image_out + image
 
         return final_image
