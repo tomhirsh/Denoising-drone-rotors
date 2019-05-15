@@ -31,60 +31,62 @@ else:
 #recommanded cmd: --batch_size=1 --num_denoise_layers=20 --num_workers=0 --start-epoch=6000 --resume=output\pretrained\best_checkpoint.pth.tar --quant=True
 
 parser = argparse.ArgumentParser(description='Denoising training with PyTorch')
-args = None
+# args = None
+# VAL_PART = None
 
-def parse_args():
-    parser.add_argument('--seed', default=0, type=int, metavar='N', help='random seed')
-    parser.add_argument('--start-epoch', default=0, type=int, metavar='N', help='manual epoch number (useful on restarts)')
-    parser.add_argument('--epochs', type=int, default=5000, help='Number of epochs to train.')
-    parser.add_argument('--batch_size', type=int, default=16, help='Number of epochs to train.')
-    parser.add_argument('--num_denoise_layers', type=int, default=20, help='num of layers.')
-    parser.add_argument('--learning_rate', '-lr', type=float, default=5e-5, help='The learning rate.')
-    parser.add_argument('--decay', '-d', type=float, default=0, help='Weight decay (L2 penalty).')
-    parser.add_argument('--gpus', default=GPUS_DEFAULT, help='List of GPUs used for training - e.g 0,1,3')
-    parser.add_argument('--datapath', type=str, default=DATA_PATH, help='Path to MSR-Demosaicing dataset')
-    parser.add_argument('--resume', type=str, default=None, help='Path to checkpoint file')
-    parser.add_argument('--out_dir', type=str, default=OUTPUT_DIR, help='Path to save model and results')
+# def parse_args():
+parser.add_argument('--seed', default=0, type=int, metavar='N', help='random seed')
+parser.add_argument('--start-epoch', default=0, type=int, metavar='N', help='manual epoch number (useful on restarts)')
+parser.add_argument('--epochs', type=int, default=5000, help='Number of epochs to train.')
+parser.add_argument('--batch_size', type=int, default=16, help='Number of epochs to train.')
+parser.add_argument('--num_denoise_layers', type=int, default=20, help='num of layers.')
+parser.add_argument('--learning_rate', '-lr', type=float, default=5e-5, help='The learning rate.')
+parser.add_argument('--decay', '-d', type=float, default=0, help='Weight decay (L2 penalty).')
+parser.add_argument('--gpus', default=GPUS_DEFAULT, help='List of GPUs used for training - e.g 0,1,3')
+parser.add_argument('--datapath', type=str, default=DATA_PATH, help='Path to MSR-Demosaicing dataset')
+parser.add_argument('--resume', type=str, default=None, help='Path to checkpoint file')
+parser.add_argument('--out_dir', type=str, default=OUTPUT_DIR, help='Path to save model and results')
 
-    parser.add_argument('--quant_epoch_step', type=int, default=50, help='quant_bitwidth.')
-    parser.add_argument('--num_workers', type=int, default=4, help='Num of workers for data.')
+parser.add_argument('--quant_epoch_step', type=int, default=50, help='quant_bitwidth.')
+parser.add_argument('--num_workers', type=int, default=4, help='Num of workers for data.')
 
-    parser.add_argument('--quant_start_stage', type=int, default=0, help='Num of workers for data.')
+parser.add_argument('--quant_start_stage', type=int, default=0, help='Num of workers for data.')
 
-    parser.add_argument('--inject_noise', default=False, type=lambda x: (str(x).lower() == 'true'), help='use preproccesing for the grad')
-    parser.add_argument('--show_test_result', type=lambda x: (str(x).lower() == 'true'), default=False, help='show figures of test result')
-    parser.add_argument('--quant', default=False, type=lambda x: (str(x).lower() == 'true') , help='use preproccesing for the grad')
-    parser.add_argument('--quant_bitwidth', type=int, default=32, help='quant_bitwidth.')
+parser.add_argument('--inject_noise', default=False, type=lambda x: (str(x).lower() == 'true'), help='use preproccesing for the grad')
+parser.add_argument('--show_test_result', type=lambda x: (str(x).lower() == 'true'), default=False, help='show figures of test result')
+parser.add_argument('--quant', default=False, type=lambda x: (str(x).lower() == 'true') , help='use preproccesing for the grad')
+parser.add_argument('--quant_bitwidth', type=int, default=32, help='quant_bitwidth.')
 
-    parser.add_argument('--inject_act_noise', default=False, type=lambda x: (str(x).lower() == 'true'), help='use preproccesing for the grad')
-    parser.add_argument('--act_quant', default=False, type=lambda x: (str(x).lower() == 'true') , help='use preproccesing for the grad')
-    parser.add_argument('--act_bitwidth', type=int, default=32, help='quant_bitwidth.')
-    parser.add_argument('--step', type=int, default=19, help='amount of split the layer in quant.')
+parser.add_argument('--inject_act_noise', default=False, type=lambda x: (str(x).lower() == 'true'), help='use preproccesing for the grad')
+parser.add_argument('--act_quant', default=False, type=lambda x: (str(x).lower() == 'true') , help='use preproccesing for the grad')
+parser.add_argument('--act_bitwidth', type=int, default=32, help='quant_bitwidth.')
+parser.add_argument('--step', type=int, default=19, help='amount of split the layer in quant.')
 
-    parser.add_argument('--set_gpu', type=lambda x: (str(x).lower() == 'true'), default=False, help='show figures of test result')
-    parser.add_argument('--adaptive_lr', type=lambda x: (str(x).lower() == 'true'), default=True, help='show figures of test result')
+parser.add_argument('--set_gpu', type=lambda x: (str(x).lower() == 'true'), default=False, help='show figures of test result')
+parser.add_argument('--adaptive_lr', type=lambda x: (str(x).lower() == 'true'), default=True, help='show figures of test result')
 
-    parser.add_argument('--enable_decay', type=lambda x: (str(x).lower() == 'true'), default=False, help='decay_enable')
-    parser.add_argument('--weight_relu', type=lambda x: (str(x).lower() == 'true'), default=False, help='weight_relu')
-    parser.add_argument('--weight_grad_after_quant', type=lambda x: (str(x).lower() == 'true'), default=False, help='weight_grad_after_quant')
-    parser.add_argument('--random_inject_noise', type=lambda x: (str(x).lower() == 'true'), default=False, help='random_inject_noise')
+parser.add_argument('--enable_decay', type=lambda x: (str(x).lower() == 'true'), default=False, help='decay_enable')
+parser.add_argument('--weight_relu', type=lambda x: (str(x).lower() == 'true'), default=False, help='weight_relu')
+parser.add_argument('--weight_grad_after_quant', type=lambda x: (str(x).lower() == 'true'), default=False, help='weight_grad_after_quant')
+parser.add_argument('--random_inject_noise', type=lambda x: (str(x).lower() == 'true'), default=False, help='random_inject_noise')
 
-    parser.add_argument('--stage_only_clamp', type=lambda x: (str(x).lower() == 'true'), default=False, help='stage_only_clamp')
-    parser.add_argument('--wrpn', type=lambda x: (str(x).lower() == 'true'), default=False, help='wrpn quantization')
+parser.add_argument('--stage_only_clamp', type=lambda x: (str(x).lower() == 'true'), default=False, help='stage_only_clamp')
+parser.add_argument('--wrpn', type=lambda x: (str(x).lower() == 'true'), default=False, help='wrpn quantization')
 
-    parser.add_argument('--copy_statistics', type=lambda x: (str(x).lower() == 'true'), default=True, help='copy_statistics')
+parser.add_argument('--copy_statistics', type=lambda x: (str(x).lower() == 'true'), default=True, help='copy_statistics')
 
-    parser.add_argument('--quant_decay', type=float, default=0.0005, help='quant decay.')
+parser.add_argument('--quant_decay', type=float, default=0.0005, help='quant decay.')
 
-    parser.add_argument('--val_part', type=float, default=0, help='quant decay.')
+parser.add_argument('--val_part', type=float, default=0, help='quant decay.')
 
-    args = parser.parse_args()
+args = parser.parse_args()
+VAL_PART = args.val_part
 
 transformation = utils.JointCompose([
-    utils.JointHorizontalFlip(),
-    utils.JointVerticalFlip(),
-    #utils.JointNormailze(means = [0.485,0.456,0.406],stds = [1,1,1]), #TODO consider use
-    utils.JointToTensor(),
+utils.JointHorizontalFlip(),
+utils.JointVerticalFlip(),
+#utils.JointNormailze(means = [0.485,0.456,0.406],stds = [1,1,1]), #TODO consider use
+utils.JointToTensor(),
 ])
 val_transformation = utils.JointCompose([
     #utils.JointNormailze(means = [0.485,0.456,0.406],stds = [1,1,1]),
@@ -146,6 +148,7 @@ def adjust_parameters(model):
 
 
 def main():
+
     if args.gpus is not None:
         torch.cuda.manual_seed_all(args.seed)
         #args.gpus = [int(i) for i in args.gpus.split(',')]
@@ -155,7 +158,7 @@ def main():
         args.gpus = [int(i) for i in args.gpus.split(',')]
         torch.cuda.set_device(args.gpus[0])
 
-    model = DenoisingNet(num_denoise_layers=args.num_denoise_layers, quant=args.quant , noise=args.inject_noise, bitwidth=args.quant_bitwidth, quant_epoch_step=args.quant_epoch_step,
+    model = DenoisingNet(in_channels=1, num_denoise_layers=args.num_denoise_layers, quant=args.quant , noise=args.inject_noise, bitwidth=args.quant_bitwidth, quant_epoch_step=args.quant_epoch_step,
                          act_noise=args.inject_act_noise , act_bitwidth= args.act_bitwidth , act_quant=args.act_quant, use_cuda=(args.gpus is not None), quant_start_stage=args.quant_start_stage,
                          weight_relu=args.weight_relu, weight_grad_after_quant=args.weight_grad_after_quant, random_inject_noise = args.random_inject_noise
                          , step=args.step, wrpn=args.wrpn)
@@ -418,5 +421,5 @@ def plot_weight_quant_error_statistic(model, save_path):
     return
 
 if __name__ == '__main__':
-    parse_args()
+    # parse_args()
     main()
