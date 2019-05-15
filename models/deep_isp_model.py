@@ -20,12 +20,10 @@ class DenoisingNet(UNIQNet):
                  bitwidth=32, use_cuda=True, quant_edges=True, act_quant = False, act_noise=False, act_bitwidth=8 , quant_epoch_step=80,
                  quant_start_stage=0, weight_relu=False,weight_grad_after_quant=False, random_inject_noise = False, std_weight_clamp=2.3,std_act_clamp=6.9,step=19, wrpn=False,quant_first_layer=True,num_of_layers_each_step=2):
         """DenoisingNet constructor.
-
         Arguments:
             in_channels (int, optional): number of channels in the input tensor. Default is 3 for RGB image inputs.
             num_denoise_layers (int, optional): number of denoising layers
             num_filters (int, optional): number of filters in denoising layers
-
         """
 
         super(DenoisingNet, self).__init__(quant_epoch_step=quant_epoch_step,quant_start_stage=quant_start_stage, quant=quant, noise=noise, bitwidth=bitwidth, step=step, quant_edges=quant_edges,
@@ -104,5 +102,3 @@ class DenoisingNet(UNIQNet):
         # final_image = image_out + image
 
         return final_image
-
-

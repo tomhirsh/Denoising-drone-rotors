@@ -93,7 +93,9 @@ val_transformation = utils.JointCompose([
     utils.JointToTensor(),
 ])
 
-trainset = AudioDataset(data_h5_path='/home/simon/denoise/dataset/data/data.h5', train=True)
+VAL_PART = args.val_part
+
+trainset = AudioDataset(data_h5_path='preprocess_audio/data.h5', add_rpm = False, train=True)
 train_loader = torch.utils.data.DataLoader(trainset, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers)
 
 statistic_loader = torch.utils.data.DataLoader(trainset, batch_size=4, shuffle=True, num_workers=args.num_workers)
@@ -101,7 +103,7 @@ statistic_loader = torch.utils.data.DataLoader(trainset, batch_size=4, shuffle=T
 #valset = AudioDataset(data_dir=args.datapath, train=False, validation_part=VAL_PART, validation=True)
 #val_loader = torch.utils.data.DataLoader(valset, batch_size=1, shuffle=False, num_workers=args.num_workers)
 
-testset = AudioDataset(data_h5_path='/home/simon/denoise/dataset/data/data.h5', train=False)
+testset = AudioDataset(data_h5_path='preprocess_audio/data.h5', add_rpm = False, train=False)
 test_loader = torch.utils.data.DataLoader(testset, batch_size=1, shuffle=False, num_workers=args.num_workers)
 
 
