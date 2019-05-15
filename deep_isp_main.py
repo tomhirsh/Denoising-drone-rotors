@@ -158,7 +158,7 @@ def main():
         args.gpus = [int(i) for i in args.gpus.split(',')]
         torch.cuda.set_device(args.gpus[0])
 
-    model = DenoisingNet(in_channels=2, num_denoise_layers=args.num_denoise_layers, quant=args.quant , noise=args.inject_noise, bitwidth=args.quant_bitwidth, quant_epoch_step=args.quant_epoch_step,
+    model = DenoisingNet(in_channels=1, num_denoise_layers=args.num_denoise_layers, quant=args.quant , noise=args.inject_noise, bitwidth=args.quant_bitwidth, quant_epoch_step=args.quant_epoch_step,
                          act_noise=args.inject_act_noise , act_bitwidth= args.act_bitwidth , act_quant=args.act_quant, use_cuda=(args.gpus is not None), quant_start_stage=args.quant_start_stage,
                          weight_relu=args.weight_relu, weight_grad_after_quant=args.weight_grad_after_quant, random_inject_noise = args.random_inject_noise
                          , step=args.step, wrpn=args.wrpn)
