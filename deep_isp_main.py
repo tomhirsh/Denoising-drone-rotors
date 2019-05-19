@@ -48,7 +48,7 @@ parser.add_argument('--resume', type=str, default=None, help='Path to checkpoint
 parser.add_argument('--out_dir', type=str, default=OUTPUT_DIR, help='Path to save model and results')
 
 parser.add_argument('--quant_epoch_step', type=int, default=50, help='quant_bitwidth.')
-parser.add_argument('--num_workers', type=int, default=4, help='Num of workers for data.')
+parser.add_argument('--num_workers', type=int, default=0, help='Num of workers for data.')
 
 parser.add_argument('--quant_start_stage', type=int, default=0, help='Num of workers for data.')
 
