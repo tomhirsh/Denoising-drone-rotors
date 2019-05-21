@@ -197,23 +197,38 @@ class AudioGenDataset(data.Dataset):
         if self.train or self.validation:
 
             self.data_dir = os.path.join(self.dataset_dir, 'train')
-            self.train_filenames = os.listdir(train_dir)
-            self.rotor_filenames = os.listdir(rotor_dir)
+            self.train_filenames = os.listdir(self.data_dir)
+            self.rotor_filenames = os.listdir(self.rotor_dir)
 
             self.train_data = []
             self.train_labels = []
 
-            for idx in randint(0, self.dataset_size):
-                file_path = os.path.join(train_dir, self.train_filenames[idx])
+            for idx in np.random.randint(0, len(self.train_filenames), self.dataset_size):
+                file_path = os.path.join(self.data_dir, self.train_filenames[idx])
                 file_name, ext = os.path.splitext(file_path)
-                
                 gt, sr = sf.read(file_name)
-                file_length = len(gt) / sr
+
+                # pick random location in file
+                sample_start = randint(0, len(gt) - (sr * sample_length))
+                gt = gt[sample_start: sample_start + (sr * sample_length)]
+
+                # pick random rotor rpm
+                rotor_file_path = os.path.join(self.rotor_dir, self.rotor_filenames[randint(0, len(self.rotor_filenames)])
+                rotor_sound = sf.read(rotor_file_path)
                 
-                im = self.generate_sample(file_path, ext=ext)
+                # theoretically take random sample of sample_size seconds from rotor file
+
+                # combine sound and rotor
+                volume_rotors = random.uniform(0.1, 0.3)
+                im = combine_two_wavs(rotor_sound, gt, volume1=volume_rotors)
+
+                # convert wav to spectogram
+                im, _  = create_spectogram(img, N_FFT)
+                gt, _ = create_spectogram(gt, N_FFT)
+
                 # add rpm as channel
                 if add_rpm:
-                    rpm = f.split("_")[-2]
+                    rpm = os.path.basename(rotor_file_path)
                     rpm_channel = np.full_like(im, rpm)
                     im = np.append(im, rpm_channel, 0)
                 
@@ -226,23 +241,60 @@ class AudioGenDataset(data.Dataset):
                                                                                     test_size=validation_part,
                                                                                     random_state=32)
         else:
-            test_sub = hf.get('test')
-            input_sub = test_sub.get('input')
-            gt_sub = test_sub.get('gt')
+            # test_sub = hf.get('test')
+            # input_sub = test_sub.get('input')
+            # gt_sub = test_sub.get('gt')
 
-            self.test_filenames = list(input_sub.keys())
+            # self.test_filenames = list(input_sub.keys())
 
-            self.test_data = []
-            self.test_labels = []
+            # self.test_data = []
+            # self.test_labels = []
 
-            for f in self.test_filenames:
-                im, gt = self.read_pair_from_h5(gt_sub, input_sub, f)
-                # add rpm as channel
-                if add_rpm:
-                    rpm = f.split("_")[-2]
-                    rpm_channel = np.full_like(im, rpm)
-                    im = np.append(im, rpm_channel, 0)
+            # for f in self.test_filenames:
+            #     im, gt = self.read_pair_from_h5(gt_sub, input_sub, f)
+            #     # add rpm as channel
+            #     if add_rpm:
+            #         rpm = f.split("_")[-2]
+            #         rpm_channel = np.full_like(im, rpm)
+            #         im = np.append(im, rpm_channel, 0)
                 
+            #####################################################
+            # self.data_dir = os.path.join(self.dataset_dir, 'train')
+            # self.train_filenames = os.listdir(self.data_dir)
+            # self.rotor_filenames = os.listdir(self.rotor_dir)
+
+            # self.train_data = []
+            # self.train_labels = []
+
+            # for idx in np.random.randint(0, len(self.train_filenames), self.dataset_size):
+            #     file_path = os.path.join(self.data_dir, self.train_filenames[idx])
+            #     file_name, ext = os.path.splitext(file_path)
+            #     gt, sr = sf.read(file_name)
+
+            #     # pick random location in file
+            #     sample_start = randint(0, len(gt) - (sr * sample_length))
+            #     gt = gt[sample_start: sample_start + (sr * sample_length)]
+
+            #     # pick random rotor rpm
+            #     rotor_file_path = os.path.join(self.rotor_dir, self.rotor_filenames[randint(0, len(self.rotor_filenames)])
+            #     rotor_sound = sf.read(rotor_file_path)
+                
+            #     # theoretically take random sample of sample_size seconds from rotor file
+
+            #     # combine sound and rotor
+            #     volume_rotors = random.uniform(0.1, 0.3)
+            #     im = combine_two_wavs(rotor_sound, gt, volume1=volume_rotors)
+
+            #     # convert wav to spectogram
+            #     im, _  = create_spectogram(img, N_FFT)
+            #     gt, _ = create_spectogram(gt, N_FFT)
+
+            #     # add rpm as channel
+            #     if add_rpm:
+            #         rpm = os.path.basename(rotor_file_path)
+            #         rpm_channel = np.full_like(im, rpm)
+            #         im = np.append(im, rpm_channel, 0)
+            
                 self.test_data.append(im)
                 self.test_labels.append(gt)
 
