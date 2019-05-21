@@ -2,15 +2,16 @@ import os
 import os.path
 
 import numpy as np
-from random import randint
+from random import randint, uniform
 import torch.utils.data as data
 # from PIL import Image
 import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split
 import h5py
 import deep_isp_utils as utils
-import preprocess_audio.preprocess_audio
-import soundfile as sf                                                      
+from preprocess_audio.preprocess_audio import combine_two_wavs, create_spectogram
+import soundfile as sf    
+import librosa                                                  
 
 
 class AudioDataset(data.Dataset):
@@ -206,24 +207,27 @@ class AudioGenDataset(data.Dataset):
             for idx in np.random.randint(0, len(self.train_filenames), self.dataset_size):
                 file_path = os.path.join(self.data_dir, self.train_filenames[idx])
                 file_name, ext = os.path.splitext(file_path)
-                gt, sr = sf.read(file_name)
+                gt, sr = sf.read(file_path)
 
                 # pick random location in file
-                sample_start = randint(0, len(gt) - (sr * sample_length))
+                sample_start = randint(0, len(gt) - (sr * sample_length) - 1)
                 gt = gt[sample_start: sample_start + (sr * sample_length)]
-
+                gt = librosa.core.to_mono(np.swapaxes(gt, 0, 1))
                 # pick random rotor rpm
-                rotor_file_path = os.path.join(self.rotor_dir, self.rotor_filenames[randint(0, len(self.rotor_filenames)])
-                rotor_sound = sf.read(rotor_file_path)
+                rotor_file_path = os.path.join(self.rotor_dir, self.rotor_filenames[randint(0, len(self.rotor_filenames)-1)])
+                rotor_sound, r_sr = sf.read(rotor_file_path)
+
+                rotor_sound = librosa.core.resample(rotor_sound, r_sr, sr)
                 
                 # theoretically take random sample of sample_size seconds from rotor file
 
                 # combine sound and rotor
-                volume_rotors = random.uniform(0.1, 0.3)
+                volume_rotors = uniform(0.1, 0.3)
                 im = combine_two_wavs(rotor_sound, gt, volume1=volume_rotors)
 
+                N_FFT = 1024
                 # convert wav to spectogram
-                im, _  = create_spectogram(img, N_FFT)
+                im, _  = create_spectogram(im, N_FFT)
                 gt, _ = create_spectogram(gt, N_FFT)
 
                 # add rpm as channel
