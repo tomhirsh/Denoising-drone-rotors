@@ -265,42 +265,47 @@ class AudioGenDataset(data.Dataset):
             #         im = np.append(im, rpm_channel, 0)
                 
             #####################################################
-            # self.data_dir = os.path.join(self.dataset_dir, 'train')
-            # self.train_filenames = os.listdir(self.data_dir)
-            # self.rotor_filenames = os.listdir(self.rotor_dir)
+            self.data_dir = os.path.join(self.dataset_dir, 'test')
+            self.test_filenames = os.listdir(self.data_dir)
+            self.rotor_filenames = os.listdir(self.rotor_dir)
 
-            # self.train_data = []
-            # self.train_labels = []
+            self.test_data = []
+            self.test_labels = []
 
-            # for idx in np.random.randint(0, len(self.train_filenames), self.dataset_size):
-            #     file_path = os.path.join(self.data_dir, self.train_filenames[idx])
-            #     file_name, ext = os.path.splitext(file_path)
-            #     gt, sr = sf.read(file_name)
+            for idx in np.random.randint(0, len(self.test_filenames), self.dataset_size):
+                file_path = os.path.join(self.data_dir, self.test_filenames[idx])
+                file_name, ext = os.path.splitext(file_path)
+                gt, sr = sf.read(file_path)
 
-            #     # pick random location in file
-            #     sample_start = randint(0, len(gt) - (sr * sample_length))
-            #     gt = gt[sample_start: sample_start + (sr * sample_length)]
+                # pick random location in file
+                sample_start = randint(0, len(gt) - (sr * sample_length) - 1)
+                gt = gt[sample_start: sample_start + (sr * sample_length)]
+                gt = librosa.core.to_mono(np.swapaxes(gt, 0, 1))
+                # pick random rotor rpm
+                rotor_file_path = os.path.join(self.rotor_dir, self.rotor_filenames[randint(0, len(self.rotor_filenames)-1)])
+                rotor_sound, r_sr = sf.read(rotor_file_path)
 
-            #     # pick random rotor rpm
-            #     rotor_file_path = os.path.join(self.rotor_dir, self.rotor_filenames[randint(0, len(self.rotor_filenames)])
-            #     rotor_sound = sf.read(rotor_file_path)
+                rotor_sound = librosa.core.resample(rotor_sound, r_sr, sr)
                 
-            #     # theoretically take random sample of sample_size seconds from rotor file
+                # theoretically take random sample of sample_size seconds from rotor file
 
-            #     # combine sound and rotor
-            #     volume_rotors = random.uniform(0.1, 0.3)
-            #     im = combine_two_wavs(rotor_sound, gt, volume1=volume_rotors)
+                # combine sound and rotor
+                volume_rotors = uniform(0.1, 0.3)
+                im = combine_two_wavs(rotor_sound, gt, volume1=volume_rotors)
 
-            #     # convert wav to spectogram
-            #     im, _  = create_spectogram(img, N_FFT)
-            #     gt, _ = create_spectogram(gt, N_FFT)
+                N_FFT = 1024
+                # convert wav to spectogram
+                im, _  = create_spectogram(im, N_FFT)
+                gt, _ = create_spectogram(gt, N_FFT)
 
-            #     # add rpm as channel
-            #     if add_rpm:
-            #         rpm = os.path.basename(rotor_file_path)
-            #         rpm_channel = np.full_like(im, rpm)
-            #         im = np.append(im, rpm_channel, 0)
-            
+                gt = np.expand_dims(gt, axis=0)
+                im = np.expand_dims(im, axis=0)
+                # add rpm as channel
+                if add_rpm:
+                    rpm = os.path.basename(rotor_file_path)
+                    rpm_channel = np.full_like(im, rpm)
+                    im = np.append(im, rpm_channel, 0)
+
                 self.test_data.append(im)
                 self.test_labels.append(gt)
 
