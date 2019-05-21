@@ -230,6 +230,8 @@ class AudioGenDataset(data.Dataset):
                 im, _  = create_spectogram(im, N_FFT)
                 gt, _ = create_spectogram(gt, N_FFT)
 
+                gt = np.expand_dims(gt, axis=0)
+                im = np.expand_dims(im, axis=0)
                 # add rpm as channel
                 if add_rpm:
                     rpm = os.path.basename(rotor_file_path)
