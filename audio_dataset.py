@@ -11,8 +11,8 @@ import h5py
 import deep_isp_utils as utils
 from preprocess_audio.preprocess_audio import combine_two_wavs, create_spectogram
 import soundfile as sf    
-import librosa                                                  
-
+import librosa  
+from tqdm import tqdm
 
 class AudioDataset(data.Dataset):
     """`MSR Demosaicing <https://www.microsoft.com/en-us/download/details.aspx?id=52535>`_  Dataset.
@@ -193,6 +193,7 @@ class AudioGenDataset(data.Dataset):
         self.train = train  # training set or test set
         self.validation = validation  # validation set
         self.sample_length = 1
+        N_FFT = 2048
 
         # now load the picked numpy arrays
         if self.train or self.validation:
@@ -204,30 +205,45 @@ class AudioGenDataset(data.Dataset):
             self.train_data = []
             self.train_labels = []
 
-            for idx in np.random.randint(0, len(self.train_filenames), self.dataset_size):
+            print("Building dataset")
+            for idx in tqdm(np.random.randint(0, len(self.train_filenames), self.dataset_size),0):
                 file_path = os.path.join(self.data_dir, self.train_filenames[idx])
                 file_name, ext = os.path.splitext(file_path)
-                gt, sr = sf.read(file_path)
+                while True: 
+                    try:
+                        gt, sr = sf.read(file_path)
+                        if (len(gt) / sr - 1) < sample_length:
+                            raise Exception("sample too short")
+                        # pick random location in file
+                        sample_start = randint(0, len(gt) - (sr * sample_length) - 1)
+                        gt = gt[sample_start: sample_start + (sr * sample_length)]
+                        if (gt.max()) < 0.45:
+                            raise Exception("sample too silent")
+                    except Exception as e:
+                        # tqdm.write("Exception: {}".format(e))
+                        idx = randint(0, len(self.train_filenames)-1)
+                        file_path = os.path.join(self.data_dir, self.train_filenames[idx])
+                        continue
+                    break
 
-                # pick random location in file
-                sample_start = randint(0, len(gt) - (sr * sample_length) - 1)
-                gt = gt[sample_start: sample_start + (sr * sample_length)]
-                gt = librosa.core.to_mono(np.swapaxes(gt, 0, 1))
+                
+                if(gt.shape[0] == 2):
+                    gt = librosa.core.to_mono(np.swapaxes(gt, 0, 1))
                 # pick random rotor rpm
                 rotor_file_path = os.path.join(self.rotor_dir, self.rotor_filenames[randint(0, len(self.rotor_filenames)-1)])
                 rotor_sound, r_sr = sf.read(rotor_file_path)
-
                 rotor_sound = librosa.core.resample(rotor_sound, r_sr, sr)
                 
                 # theoretically take random sample of sample_size seconds from rotor file
-
+                
+                # equalize scale ranges to [0,1]
+                rotor_sound *= gt.max()
                 # combine sound and rotor
-                volume_rotors = uniform(0.1, 0.3)
-                im = combine_two_wavs(rotor_sound, gt, volume1=volume_rotors)
+                volume_rotor = 0.4
+                im = combine_two_wavs(rotor_sound, gt, volume1=volume_rotor)
 
-                N_FFT = 1024
                 # convert wav to spectogram
-                im, _  = create_spectogram(im, N_FFT)
+                im, _ = create_spectogram(im, N_FFT)
                 gt, _ = create_spectogram(gt, N_FFT)
 
                 gt = np.expand_dims(gt, axis=0)
@@ -235,6 +251,7 @@ class AudioGenDataset(data.Dataset):
                 # add rpm as channel
                 if add_rpm:
                     rpm = os.path.basename(rotor_file_path)
+                    rpm = float(rpm.split(".")[0]) / float(max(self.rotor_filenames).split(".")[0])
                     rpm_channel = np.full_like(im, rpm)
                     im = np.append(im, rpm_channel, 0)
                 
@@ -275,7 +292,17 @@ class AudioGenDataset(data.Dataset):
             for idx in np.random.randint(0, len(self.test_filenames), self.dataset_size):
                 file_path = os.path.join(self.data_dir, self.test_filenames[idx])
                 file_name, ext = os.path.splitext(file_path)
-                gt, sr = sf.read(file_path)
+                while True: 
+                    try:
+                        gt, sr = sf.read(file_path)
+                        if (len(gt) / sr) < sample_length:
+                            raise Exception("sample too short")
+                    except Exception as e:
+                        print("Exception: ", e)
+                        idx = randint(0, len(self.train_filenames))
+                        file_path = os.path.join(self.data_dir, self.train_filenames[idx])
+                        continue
+                    break
 
                 # pick random location in file
                 sample_start = randint(0, len(gt) - (sr * sample_length) - 1)
@@ -289,11 +316,12 @@ class AudioGenDataset(data.Dataset):
                 
                 # theoretically take random sample of sample_size seconds from rotor file
 
+                # equalize scale ranges to [0,1]
+                rotor_sound *= gt.max()
                 # combine sound and rotor
-                volume_rotors = uniform(0.1, 0.3)
-                im = combine_two_wavs(rotor_sound, gt, volume1=volume_rotors)
+                volume_rotor = 0.2
+                im = combine_two_wavs(rotor_sound, gt, volume1=volume_rotor)
 
-                N_FFT = 1024
                 # convert wav to spectogram
                 im, _  = create_spectogram(im, N_FFT)
                 gt, _ = create_spectogram(gt, N_FFT)
@@ -303,6 +331,7 @@ class AudioGenDataset(data.Dataset):
                 # add rpm as channel
                 if add_rpm:
                     rpm = os.path.basename(rotor_file_path)
+                    rpm = float(rpm.split(".")[0]) / float(max(self.rotor_filenames).split(".")[0])
                     rpm_channel = np.full_like(im, rpm)
                     im = np.append(im, rpm_channel, 0)
 

@@ -6,7 +6,7 @@ from tqdm import tqdm
 import time
 from models.deep_isp_model import DenoisingNet
 #from msr_demosaic import MSRDemosaic
-from audio_dataset import AudioDataset
+from audio_dataset import AudioDataset, AudioGenDataset
 import deep_isp_utils as utils
 from collections import OrderedDict
 import shutil
@@ -95,17 +95,23 @@ val_transformation = utils.JointCompose([
 
 VAL_PART = args.val_part
 
-trainset = AudioDataset(data_h5_path='preprocess_audio/data.h5', add_rpm = False, train=True)
+# trainset = AudioDataset(data_h5_path='preprocess_audio/data.h5', add_rpm = False, train=True)
+# train_loader = torch.utils.data.DataLoader(trainset, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers)
+
+trainset = AudioGenDataset("/home/simon/denoise/dataset/generator/", dataset_size=5000, add_rpm=True)
 train_loader = torch.utils.data.DataLoader(trainset, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers)
+
 
 statistic_loader = torch.utils.data.DataLoader(trainset, batch_size=4, shuffle=True, num_workers=args.num_workers)
 
 #valset = AudioDataset(data_dir=args.datapath, train=False, validation_part=VAL_PART, validation=True)
 #val_loader = torch.utils.data.DataLoader(valset, batch_size=1, shuffle=False, num_workers=args.num_workers)
 
-testset = AudioDataset(data_h5_path='preprocess_audio/data.h5', add_rpm = False, train=False)
-test_loader = torch.utils.data.DataLoader(testset, batch_size=1, shuffle=False, num_workers=args.num_workers)
+# testset = AudioDataset(data_h5_path='preprocess_audio/data.h5', add_rpm = False, train=False)
+# test_loader = torch.utils.data.DataLoader(testset, batch_size=1, shuffle=False, num_workers=args.num_workers)
 
+testset = AudioGenDataset("/home/simon/denoise/dataset/generator/", train=False, dataset_size=100, add_rpm=True)
+test_loader = torch.utils.data.DataLoader(testset, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers)
 
 def load_model(model,checkpoint):
 
@@ -158,7 +164,7 @@ def main():
         args.gpus = [int(i) for i in args.gpus.split(',')]
         torch.cuda.set_device(args.gpus[0])
 
-    model = DenoisingNet(in_channels=1, num_denoise_layers=args.num_denoise_layers, quant=args.quant , noise=args.inject_noise, bitwidth=args.quant_bitwidth, quant_epoch_step=args.quant_epoch_step,
+    model = DenoisingNet(in_channels=2, num_denoise_layers=args.num_denoise_layers, quant=args.quant , noise=args.inject_noise, bitwidth=args.quant_bitwidth, quant_epoch_step=args.quant_epoch_step,
                          act_noise=args.inject_act_noise , act_bitwidth= args.act_bitwidth , act_quant=args.act_quant, use_cuda=(args.gpus is not None), quant_start_stage=args.quant_start_stage,
                          weight_relu=args.weight_relu, weight_grad_after_quant=args.weight_grad_after_quant, random_inject_noise = args.random_inject_noise
                          , step=args.step, wrpn=args.wrpn)
