@@ -325,14 +325,11 @@ def train(model, epoch, optimizer, criterion):
         # break
 
 
-        loss = criterion(output, target)
-        print("output: ", output.max())
-        print("target: ", target.max())
-        # loss_for_psnr, loss, weight_decay_loss = calc_loss(output, target, criterion, model,args)
+        # loss = criterion(output, target)
+        loss_for_psnr, loss, weight_decay_loss = calc_loss(output, target, criterion, model,args)
         loss.backward()
         optimizer.step()
-        train_loss += loss
-        # train_loss += output.shape[0] * loss_for_psnr.item()  # sum up batch loss
+        train_loss += output.shape[0] * loss_for_psnr.item()  # sum up batch loss
 
     train_loss /= len(train_loader.dataset)
     return train_loss
