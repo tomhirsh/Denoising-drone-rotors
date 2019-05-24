@@ -212,13 +212,14 @@ class AudioGenDataset(data.Dataset):
                 # pick random location in file
                 sample_start = randint(0, len(gt) - (sr * sample_length) - 1)
                 gt = gt[sample_start: sample_start + (sr * sample_length)]
-                gt = librosa.core.to_mono(np.swapaxes(gt, 0, 1))
+                # gt = librosa.core.to_mono(np.swapaxes(gt, 0, 1))
                 # pick random rotor rpm
                 rotor_file_path = os.path.join(self.rotor_dir, self.rotor_filenames[randint(0, len(self.rotor_filenames)-1)])
                 rotor_sound, r_sr = sf.read(rotor_file_path)
 
-                rotor_sound = librosa.core.resample(rotor_sound, r_sr, sr)
-                
+                rotor_sound = librosa.core.resample(rotor_sound, r_sr, 22050)
+                gt = librosa.core.resample(gt, sr, 22050)
+
                 # theoretically take random sample of sample_size seconds from rotor file
 
                 # combine sound and rotor
