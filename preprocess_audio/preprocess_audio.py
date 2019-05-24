@@ -16,7 +16,7 @@ options for augmentation:
 2. pitch shifting light {-2, -1, 1, 2}
 3. pitch shifting - larger values {-3.5, -2.5, 2.5, 3.5}
 """
-def add_augmentation(sound_arr, fs = 22050, augmentation=0):
+def add_augmentation(sound_arr, fs = 52735, augmentation=0):
     ts_list = [0.81, 0.93, 1.07, 1.23]
     ps1_list = [-2, -1, 1, 2]
     ps2_list = [-3.5, -2.5, 2.5, 3.5]
@@ -128,7 +128,7 @@ if __name__ == '__main__':
     N_FFT = 1024
 
     # save the dataset as np.arrays in h5 file
-    hf = h5py.File('data1.h5', 'w')
+    hf = h5py.File('data.h5', 'w')
     # create train and test spectograms
     print('processing train files')
     # create group for train in the h5 file

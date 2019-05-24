@@ -14,6 +14,7 @@ import soundfile as sf
 import librosa  
 from tqdm import tqdm
 
+# Dataset using h5 file with all the data needed (train and test)
 class AudioDataset(data.Dataset):
     """`MSR Demosaicing <https://www.microsoft.com/en-us/download/details.aspx?id=52535>`_  Dataset.
 
@@ -144,6 +145,10 @@ class AudioDataset(data.Dataset):
         else:
             return len(self.test_data)
 
+# Dataset using a directory with the following subdirectories: train, test, rotor 
+# train and test directories contain only gt sounds (without noise)
+# Audio and rotors are randomly sampled from the files
+# 
 class AudioGenDataset(data.Dataset):
     """`MSR Demosaicing <https://www.microsoft.com/en-us/download/details.aspx?id=52535>`_  Dataset.
 
@@ -212,10 +217,10 @@ class AudioGenDataset(data.Dataset):
                 while True: 
                     try:
                         gt, sr = sf.read(file_path)
-                        if (len(gt) / sr - 1) < self.sample_length:
+                        if (len(gt) / sr) < self.sample_length:
                             raise Exception("sample too short")
                         # pick random location in file
-                        sample_start = randint(0, len(gt) - (sr * self.sample_length) - 1)
+                        sample_start = randint(0, len(gt) - (sr * self.sample_length))
                         gt = gt[sample_start: sample_start + (sr * self.sample_length)]
                         if (gt.max()) < 0.45:
                             raise Exception("sample too silent")
@@ -232,20 +237,26 @@ class AudioGenDataset(data.Dataset):
                 # pick random rotor rpm
                 rotor_file_path = os.path.join(self.rotor_dir, self.rotor_filenames[randint(0, len(self.rotor_filenames)-1)])
                 rotor_sound, r_sr = sf.read(rotor_file_path)
-                rotor_sound = librosa.core.resample(rotor_sound, r_sr, sr)
+                
+                rotor_sound = librosa.core.resample(rotor_sound, r_sr, 22050)
+                gt = librosa.core.resample(gt, sr, 22050)
+
                 # theoretically take random sample of sample_size seconds from rotor file
                 
                 # equalize scale ranges to [0,1]
-                rotor_sound *= gt.max()
+                # rotor_sound *= gt.max()
+                # # combine sound and rotor
+                # volume_rotor = 0.4
+                # im = combine_two_wavs(rotor_sound, gt, volume1=volume_rotor)
+
                 # combine sound and rotor
-                volume_rotor = 0.4
-                im = combine_two_wavs(rotor_sound, gt, volume1=volume_rotor)
+                volume_rotors = uniform(0.1, 0.3)
+                im = combine_two_wavs(rotor_sound, gt, volume1=volume_rotors)
+
 
                 # convert wav to spectogram
                 im, _ = create_spectogram(im, N_FFT)
                 gt, _ = create_spectogram(gt, N_FFT)
-                print("shape: ", gt.shape)
-                print("_: ", _)
                 gt = np.expand_dims(gt, axis=0)
                 im = np.expand_dims(im, axis=0)
                 # add rpm as channel
@@ -312,12 +323,13 @@ class AudioGenDataset(data.Dataset):
                 rotor_file_path = os.path.join(self.rotor_dir, self.rotor_filenames[randint(0, len(self.rotor_filenames)-1)])
                 rotor_sound, r_sr = sf.read(rotor_file_path)
 
-                rotor_sound = librosa.core.resample(rotor_sound, r_sr, sr)
-                
+                rotor_sound = librosa.core.resample(rotor_sound, r_sr, 22050)
+                gt = librosa.core.resample(gt, sr, 22050)
+
                 # theoretically take random sample of sample_size seconds from rotor file
 
                 # equalize scale ranges to [0,1]
-                rotor_sound *= gt.max()
+                # rotor_sound *= gt.max()
                 # combine sound and rotor
                 volume_rotor = 0.2
                 im = combine_two_wavs(rotor_sound, gt, volume1=volume_rotor)
