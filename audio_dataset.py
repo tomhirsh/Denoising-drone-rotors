@@ -13,6 +13,7 @@ from preprocess_audio.preprocess_audio import combine_two_wavs, create_spectogra
 import soundfile as sf    
 import librosa  
 from tqdm import tqdm
+import pyloudnorm as pyln
 
 # Dataset using h5 file with all the data needed (train and test)
 class AudioDataset(data.Dataset):
@@ -217,6 +218,7 @@ class AudioGenDataset(data.Dataset):
                 while True: 
                     try:
                         gt, sr = sf.read(file_path)
+                        gt = pyln.normalize.peak(gt, -5.0)
                         if (len(gt) / sr) < self.sample_length:
                             raise Exception("sample too short")
                         # pick random location in file
@@ -237,9 +239,10 @@ class AudioGenDataset(data.Dataset):
                 # pick random rotor rpm
                 rotor_file_path = os.path.join(self.rotor_dir, self.rotor_filenames[randint(0, len(self.rotor_filenames)-1)])
                 rotor_sound, r_sr = sf.read(rotor_file_path)
+                rotor_sound = pyln.normalize.peak(rotor_sound, -5.0)
                 
-                rotor_sound = librosa.core.resample(rotor_sound, r_sr, 22050)
-                gt = librosa.core.resample(gt, sr, 22050)
+                rotor_sound = librosa.core.resample(rotor_sound, r_sr, sr)
+                # gt = librosa.core.resample(gt, sr, 22050)
 
                 # theoretically take random sample of sample_size seconds from rotor file
                 
@@ -250,7 +253,7 @@ class AudioGenDataset(data.Dataset):
                 # im = combine_two_wavs(rotor_sound, gt, volume1=volume_rotor)
 
                 # combine sound and rotor
-                volume_rotors = uniform(0.1, 0.3)
+                volume_rotors = 0.2 #uniform(0.1, 0.3)
                 im = combine_two_wavs(rotor_sound, gt, volume1=volume_rotors)
 
 

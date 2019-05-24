@@ -95,11 +95,11 @@ val_transformation = utils.JointCompose([
 
 VAL_PART = args.val_part
 
-trainset = AudioDataset(data_h5_path='preprocess_audio/data.h5', add_rpm = False, train=True)
-train_loader = torch.utils.data.DataLoader(trainset, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers)
-
-# trainset = AudioGenDataset("/home/simon/denoise/dataset/mini_dataset/", dataset_size=30, add_rpm=False)
+# trainset = AudioDataset(data_h5_path='preprocess_audio/data.h5', add_rpm = False, train=True)
 # train_loader = torch.utils.data.DataLoader(trainset, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers)
+
+trainset = AudioGenDataset("/home/simon/denoise/dataset/generator/", dataset_size=1000, add_rpm=False)
+train_loader = torch.utils.data.DataLoader(trainset, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers)
 
 
 statistic_loader = torch.utils.data.DataLoader(trainset, batch_size=4, shuffle=True, num_workers=args.num_workers)
@@ -107,11 +107,11 @@ statistic_loader = torch.utils.data.DataLoader(trainset, batch_size=4, shuffle=T
 # valset = AudioDataset(data_dir=args.datapath, train=False, validation_part=VAL_PART, validation=True)
 # val_loader = torch.utils.data.DataLoader(valset, batch_size=1, shuffle=False, num_workers=args.num_workers)
 
-testset = AudioDataset(data_h5_path='preprocess_audio/data.h5', add_rpm = False, train=False)
-test_loader = torch.utils.data.DataLoader(testset, batch_size=1, shuffle=False, num_workers=args.num_workers)
+# testset = AudioDataset(data_h5_path='preprocess_audio/data.h5', add_rpm = False, train=False)
+# test_loader = torch.utils.data.DataLoader(testset, batch_size=1, shuffle=False, num_workers=args.num_workers)
 
-# testset = AudioGenDataset("/home/simon/denoise/dataset/mini_dataset/", train=True, dataset_size=4, add_rpm=False)
-# test_loader = torch.utils.data.DataLoader(testset, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers)
+testset = AudioGenDataset("/home/simon/denoise/dataset/generator/", train=False, dataset_size=4, add_rpm=False)
+test_loader = torch.utils.data.DataLoader(testset, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers)
 
 def load_model(model,checkpoint):
 
@@ -261,18 +261,18 @@ def main():
     for epoch in tqdm(range(args.start_epoch,args.epochs), initial=args.start_epoch):
         t = time.time()
         train_loss = train(model, epoch, optimizer, criterion)
-        #test_loss, test_psnr , decay_loss = test(model, criterion)
+        test_loss, test_psnr , decay_loss = test(model, criterion, True)
         torch.save({'state_dict': model.state_dict(), 'epoch': epoch, 'optim': optimizer}, checkpoint_path)
 
-        #if test_psnr > best_psnr:
-        #    best_psnr = test_psnr
-        #    shutil.copy(checkpoint_path, os.path.join(args.out_dir, 'best_checkpoint.pth.tar'))
+        if test_psnr > best_psnr:
+           best_psnr = test_psnr
+           shutil.copy(checkpoint_path, os.path.join(args.out_dir, 'best_checkpoint.pth.tar'))
 
         dur = time.time() - t
-        #tqdm.write('\nTrain loss: {:.3e}, Val loss: {:.3e}, Val PSNR: {:.3f}, Decay Loss: {:.3f}, Duration: {}\n'.format(train_loss, test_loss,test_psnr, decay_loss, dur))
-        tqdm.write('\nTrain loss: {:.3e}, Duration: {}\n'.format(train_loss, dur))
+        tqdm.write('\nTrain loss: {:.3e}, Val loss: {:.3e}, Val PSNR: {:.3f}, Decay Loss: {:.3f}, Duration: {}\n'.format(train_loss, test_loss,test_psnr, decay_loss, dur))
+        # tqdm.write('\nTrain loss: {:.3e}, Duration: {}\n'.format(train_loss, dur))
         with open(csv_path, 'a') as f:
-            f.write('{},{},{}\n'.format(epoch, train_loss, dur))
+            f.write('{},{},{}\n'.format(epoch, train_loss, test_loss, test_psnr, decay_loss, dur))
 
         if epoch % 20 == 0:
             for layer in model.modules():
