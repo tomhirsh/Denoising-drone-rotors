@@ -95,23 +95,23 @@ val_transformation = utils.JointCompose([
 
 VAL_PART = args.val_part
 
-# trainset = AudioDataset(data_h5_path='preprocess_audio/data.h5', add_rpm = False, train=True)
-# train_loader = torch.utils.data.DataLoader(trainset, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers)
-
-trainset = AudioGenDataset("/home/simon/denoise/dataset/mini_dataset/", dataset_size=5, add_rpm=False)
+trainset = AudioDataset(data_h5_path='preprocess_audio/data.h5', add_rpm = False, train=True)
 train_loader = torch.utils.data.DataLoader(trainset, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers)
+
+# trainset = AudioGenDataset("/home/simon/denoise/dataset/mini_dataset/", dataset_size=30, add_rpm=False)
+# train_loader = torch.utils.data.DataLoader(trainset, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers)
 
 
 statistic_loader = torch.utils.data.DataLoader(trainset, batch_size=4, shuffle=True, num_workers=args.num_workers)
 
-#valset = AudioDataset(data_dir=args.datapath, train=False, validation_part=VAL_PART, validation=True)
-#val_loader = torch.utils.data.DataLoader(valset, batch_size=1, shuffle=False, num_workers=args.num_workers)
+# valset = AudioDataset(data_dir=args.datapath, train=False, validation_part=VAL_PART, validation=True)
+# val_loader = torch.utils.data.DataLoader(valset, batch_size=1, shuffle=False, num_workers=args.num_workers)
 
-# testset = AudioDataset(data_h5_path='preprocess_audio/data.h5', add_rpm = False, train=False)
-# test_loader = torch.utils.data.DataLoader(testset, batch_size=1, shuffle=False, num_workers=args.num_workers)
+testset = AudioDataset(data_h5_path='preprocess_audio/data.h5', add_rpm = False, train=False)
+test_loader = torch.utils.data.DataLoader(testset, batch_size=1, shuffle=False, num_workers=args.num_workers)
 
-testset = AudioGenDataset("/home/simon/denoise/dataset/mini_dataset/", train=True, dataset_size=5, add_rpm=False)
-test_loader = torch.utils.data.DataLoader(testset, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers)
+# testset = AudioGenDataset("/home/simon/denoise/dataset/mini_dataset/", train=True, dataset_size=4, add_rpm=False)
+# test_loader = torch.utils.data.DataLoader(testset, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers)
 
 def load_model(model,checkpoint):
 
@@ -325,11 +325,14 @@ def train(model, epoch, optimizer, criterion):
         # break
 
 
-        #loss = criterion(output, target)
-        loss_for_psnr, loss, weight_decay_loss = calc_loss(output, target, criterion, model,args)
+        loss = criterion(output, target)
+        print("output: ", output.max())
+        print("target: ", target.max())
+        # loss_for_psnr, loss, weight_decay_loss = calc_loss(output, target, criterion, model,args)
         loss.backward()
         optimizer.step()
-        train_loss += output.shape[0] * loss_for_psnr.item()  # sum up batch loss
+        train_loss += loss
+        # train_loss += output.shape[0] * loss_for_psnr.item()  # sum up batch loss
 
     train_loss /= len(train_loader.dataset)
     return train_loss
