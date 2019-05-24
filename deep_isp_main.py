@@ -6,7 +6,7 @@ from tqdm import tqdm
 import time
 from models.deep_isp_model import DenoisingNet
 #from msr_demosaic import MSRDemosaic
-from audio_dataset import AudioDataset
+from audio_dataset import AudioDataset, AudioGenDataset
 import deep_isp_utils as utils
 from collections import OrderedDict
 import shutil
@@ -48,7 +48,7 @@ parser.add_argument('--resume', type=str, default=None, help='Path to checkpoint
 parser.add_argument('--out_dir', type=str, default=OUTPUT_DIR, help='Path to save model and results')
 
 parser.add_argument('--quant_epoch_step', type=int, default=50, help='quant_bitwidth.')
-parser.add_argument('--num_workers', type=int, default=4, help='Num of workers for data.')
+parser.add_argument('--num_workers', type=int, default=0, help='Num of workers for data.')
 
 parser.add_argument('--quant_start_stage', type=int, default=0, help='Num of workers for data.')
 
@@ -98,14 +98,20 @@ VAL_PART = args.val_part
 trainset = AudioDataset(data_h5_path='preprocess_audio/data.h5', add_rpm = False, train=True)
 train_loader = torch.utils.data.DataLoader(trainset, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers)
 
+# trainset = AudioGenDataset("/home/simon/denoise/dataset/mini_dataset/", dataset_size=30, add_rpm=False)
+# train_loader = torch.utils.data.DataLoader(trainset, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers)
+
+
 statistic_loader = torch.utils.data.DataLoader(trainset, batch_size=4, shuffle=True, num_workers=args.num_workers)
 
-#valset = AudioDataset(data_dir=args.datapath, train=False, validation_part=VAL_PART, validation=True)
-#val_loader = torch.utils.data.DataLoader(valset, batch_size=1, shuffle=False, num_workers=args.num_workers)
+# valset = AudioDataset(data_dir=args.datapath, train=False, validation_part=VAL_PART, validation=True)
+# val_loader = torch.utils.data.DataLoader(valset, batch_size=1, shuffle=False, num_workers=args.num_workers)
 
 testset = AudioDataset(data_h5_path='preprocess_audio/data.h5', add_rpm = False, train=False)
 test_loader = torch.utils.data.DataLoader(testset, batch_size=1, shuffle=False, num_workers=args.num_workers)
 
+# testset = AudioGenDataset("/home/simon/denoise/dataset/mini_dataset/", train=True, dataset_size=4, add_rpm=False)
+# test_loader = torch.utils.data.DataLoader(testset, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers)
 
 def load_model(model,checkpoint):
 
@@ -319,7 +325,7 @@ def train(model, epoch, optimizer, criterion):
         # break
 
 
-        #loss = criterion(output, target)
+        # loss = criterion(output, target)
         loss_for_psnr, loss, weight_decay_loss = calc_loss(output, target, criterion, model,args)
         loss.backward()
         optimizer.step()
