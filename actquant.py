@@ -164,7 +164,7 @@ class ActQuantBuffers(ActQuant):  # This class exist to allow multi-gpu run
 
 
 class ActQuantDeepIspPic(nn.Module):
-    def __init__(self, act_quant=False, act_bitwidth=8, act_clamp=4):
+    def __init__(self, act_quant=False, act_bitwidth=8, act_clamp=0.5):
         super(ActQuantDeepIspPic, self).__init__()
         self.act_quant = act_quant
         self.act_bitwidth = act_bitwidth
@@ -175,7 +175,7 @@ class ActQuantDeepIspPic(nn.Module):
 
     def forward(self, x):
         if self.act_quant and (not self.training or (self.training and self.quatize_during_training)):
-            # x = torch.clamp(x, -self.act_clamp, self.act_clamp)
+            x = torch.clamp(x, -self.act_clamp, self.act_clamp)
             x = 1 / self.act_scale * Round.apply(x * self.act_scale)
             return x
         else:

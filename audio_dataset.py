@@ -193,7 +193,7 @@ class AudioGenDataset(data.Dataset):
         self.train = train  # training set or test set
         self.validation = validation  # validation set
         self.sample_length = 1
-        N_FFT = 2048
+        N_FFT = 1024
 
         # now load the picked numpy arrays
         if self.train or self.validation:
@@ -212,11 +212,11 @@ class AudioGenDataset(data.Dataset):
                 while True: 
                     try:
                         gt, sr = sf.read(file_path)
-                        if (len(gt) / sr - 1) < sample_length:
+                        if (len(gt) / sr - 1) < self.sample_length:
                             raise Exception("sample too short")
                         # pick random location in file
-                        sample_start = randint(0, len(gt) - (sr * sample_length) - 1)
-                        gt = gt[sample_start: sample_start + (sr * sample_length)]
+                        sample_start = randint(0, len(gt) - (sr * self.sample_length) - 1)
+                        gt = gt[sample_start: sample_start + (sr * self.sample_length)]
                         if (gt.max()) < 0.45:
                             raise Exception("sample too silent")
                     except Exception as e:
@@ -233,7 +233,6 @@ class AudioGenDataset(data.Dataset):
                 rotor_file_path = os.path.join(self.rotor_dir, self.rotor_filenames[randint(0, len(self.rotor_filenames)-1)])
                 rotor_sound, r_sr = sf.read(rotor_file_path)
                 rotor_sound = librosa.core.resample(rotor_sound, r_sr, sr)
-                
                 # theoretically take random sample of sample_size seconds from rotor file
                 
                 # equalize scale ranges to [0,1]
@@ -245,7 +244,8 @@ class AudioGenDataset(data.Dataset):
                 # convert wav to spectogram
                 im, _ = create_spectogram(im, N_FFT)
                 gt, _ = create_spectogram(gt, N_FFT)
-
+                print("shape: ", gt.shape)
+                print("_: ", _)
                 gt = np.expand_dims(gt, axis=0)
                 im = np.expand_dims(im, axis=0)
                 # add rpm as channel
