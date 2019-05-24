@@ -10,7 +10,7 @@ def spectogram_to_wav(spectogram_content, N_CHANNELS, N_FFT, fs, dst_path=None):
 
     # reconstruction
     p = 2 * np.pi * np.random.random_sample(a.shape) - np.pi
-    for i in range(50):
+    for i in range(500):
         s = a * np.exp(1j * p)
         x = librosa.istft(s)
         p = np.angle(librosa.stft(x, N_FFT))

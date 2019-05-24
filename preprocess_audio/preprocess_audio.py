@@ -42,12 +42,9 @@ Given two np.array that were read using librosa.load, combines both.
 volume1, volume2 - amount (0 to 1) for wanted volume to combine
 """
 def combine_two_wavs(wav1, wav2, volume1=1, volume2=1):
-    long_wav, short_wav, order = (wav1, wav2, 0) if (wav1.shape[0] > wav2.shape[0]) else (wav2, wav1, 1)
-    short_wav = np.repeat(short_wav, long_wav.shape[0]/short_wav.shape[0])
-    wav1, wav2 = (long_wav, short_wav) if (order==0) else (short_wav, long_wav)
-
     combined = (wav1*volume1+wav2*volume2)/2
     return combined
+    
 
 
 # creates spectogram from array.

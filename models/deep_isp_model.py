@@ -96,7 +96,7 @@ class DenoisingNet(UNIQNet):
         image_quant_scale = (2**16-1)/(torch.min(image) - torch.max(image))
         quant_image = torch.round(image_quant_scale * image)/image_quant_scale
 
-        final_image = image_out
+        final_image = image_out + quant_image
         # final_image = image_out + quant_image
 
         return final_image
