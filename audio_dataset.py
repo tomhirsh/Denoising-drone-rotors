@@ -303,31 +303,36 @@ class AudioGenDataset(data.Dataset):
             self.test_data = []
             self.test_labels = []
 
-            for idx in np.random.randint(0, len(self.test_filenames), self.dataset_size):
+            for idx in tqdm(np.random.randint(0, len(self.test_filenames), self.dataset_size)):
                 file_path = os.path.join(self.data_dir, self.test_filenames[idx])
                 file_name, ext = os.path.splitext(file_path)
                 while True: 
                     try:
                         gt, sr = sf.read(file_path)
-                        if (len(gt) / sr) < sample_length:
+                        gt = pyln.normalize.peak(gt, -5.0)
+                        if (len(gt) / sr) < self.sample_length:
                             raise Exception("sample too short")
+                        # pick random location in file
+                        sample_start = randint(0, len(gt) - (sr * self.sample_length))
+                        gt = gt[sample_start: sample_start + (sr * self.sample_length)]
+                        if (gt.max()) < 0.45:
+                            raise Exception("sample too silent")
                     except Exception as e:
-                        print("Exception: ", e)
-                        idx = randint(0, len(self.train_filenames))
-                        file_path = os.path.join(self.data_dir, self.train_filenames[idx])
+                        # tqdm.write("Exception: {}".format(e))
+                        idx = randint(0, len(self.test_filenames)-1)
+                        file_path = os.path.join(self.data_dir, self.test_filenames[idx])
                         continue
                     break
 
-                # pick random location in file
-                sample_start = randint(0, len(gt) - (sr * sample_length) - 1)
-                gt = gt[sample_start: sample_start + (sr * sample_length)]
-                gt = librosa.core.to_mono(np.swapaxes(gt, 0, 1))
+                if(gt.shape[0] == 2):
+                    gt = librosa.core.to_mono(np.swapaxes(gt, 0, 1))
                 # pick random rotor rpm
                 rotor_file_path = os.path.join(self.rotor_dir, self.rotor_filenames[randint(0, len(self.rotor_filenames)-1)])
                 rotor_sound, r_sr = sf.read(rotor_file_path)
+                rotor_sound = pyln.normalize.peak(rotor_sound, -5.0)
 
-                rotor_sound = librosa.core.resample(rotor_sound, r_sr, 22050)
-                gt = librosa.core.resample(gt, sr, 22050)
+                rotor_sound = librosa.core.resample(rotor_sound, r_sr, sr)
+                # gt = librosa.core.resample(gt, sr, 22050)
 
                 # theoretically take random sample of sample_size seconds from rotor file
 
@@ -340,7 +345,6 @@ class AudioGenDataset(data.Dataset):
                 # convert wav to spectogram
                 im, _  = create_spectogram(im, N_FFT)
                 gt, _ = create_spectogram(gt, N_FFT)
-
                 gt = np.expand_dims(gt, axis=0)
                 im = np.expand_dims(im, axis=0)
                 # add rpm as channel
