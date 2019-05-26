@@ -218,7 +218,7 @@ class AudioGenDataset(data.Dataset):
                 while True: 
                     try:
                         gt, sr = sf.read(file_path)
-                        gt = pyln.normalize.peak(gt, -5.0)
+                        # gt = pyln.normalize.peak(gt, -5.0)
                         if (len(gt) / sr) < self.sample_length:
                             raise Exception("sample too short")
                         # pick random location in file
@@ -239,7 +239,7 @@ class AudioGenDataset(data.Dataset):
                 # pick random rotor rpm
                 rotor_file_path = os.path.join(self.rotor_dir, self.rotor_filenames[randint(0, len(self.rotor_filenames)-1)])
                 rotor_sound, r_sr = sf.read(rotor_file_path)
-                rotor_sound = pyln.normalize.peak(rotor_sound, -5.0)
+                # rotor_sound = pyln.normalize.peak(rotor_sound, -5.0)
                 
                 rotor_sound = librosa.core.resample(rotor_sound, r_sr, sr)
                 # gt = librosa.core.resample(gt, sr, 22050)
@@ -253,8 +253,9 @@ class AudioGenDataset(data.Dataset):
                 # im = combine_two_wavs(rotor_sound, gt, volume1=volume_rotor)
 
                 # combine sound and rotor
-                volume_rotors = 0.2 #uniform(0.1, 0.3)
-                im = combine_two_wavs(rotor_sound, gt, volume1=volume_rotors)
+                # volume_rotor = 0.2
+                volume_rotor = uniform(0.1, 0.3)
+                im = combine_two_wavs(rotor_sound, gt, volume1=volume_rotor)
 
 
                 # convert wav to spectogram
@@ -309,7 +310,7 @@ class AudioGenDataset(data.Dataset):
                 while True: 
                     try:
                         gt, sr = sf.read(file_path)
-                        gt = pyln.normalize.peak(gt, -5.0)
+                        # gt = pyln.normalize.peak(gt, -5.0)
                         if (len(gt) / sr) < self.sample_length:
                             raise Exception("sample too short")
                         # pick random location in file
@@ -329,7 +330,7 @@ class AudioGenDataset(data.Dataset):
                 # pick random rotor rpm
                 rotor_file_path = os.path.join(self.rotor_dir, self.rotor_filenames[randint(0, len(self.rotor_filenames)-1)])
                 rotor_sound, r_sr = sf.read(rotor_file_path)
-                rotor_sound = pyln.normalize.peak(rotor_sound, -5.0)
+                # rotor_sound = pyln.normalize.peak(rotor_sound, -5.0)
 
                 rotor_sound = librosa.core.resample(rotor_sound, r_sr, sr)
                 # gt = librosa.core.resample(gt, sr, 22050)
@@ -339,7 +340,8 @@ class AudioGenDataset(data.Dataset):
                 # equalize scale ranges to [0,1]
                 # rotor_sound *= gt.max()
                 # combine sound and rotor
-                volume_rotor = 0.2
+                # volume_rotor = 0.2
+                volume_rotor = uniform(0.1, 0.3)
                 im = combine_two_wavs(rotor_sound, gt, volume1=volume_rotor)
 
                 # convert wav to spectogram

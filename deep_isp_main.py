@@ -98,7 +98,7 @@ VAL_PART = args.val_part
 # trainset = AudioDataset(data_h5_path='preprocess_audio/data.h5', add_rpm = False, train=True)
 # train_loader = torch.utils.data.DataLoader(trainset, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers)
 
-trainset = AudioGenDataset("/home/simon/denoise/dataset/generator/", dataset_size=2000, add_rpm=True)
+trainset = AudioGenDataset("/home/simon/denoise/dataset/generator/", dataset_size=5000, add_rpm=True)
 train_loader = torch.utils.data.DataLoader(trainset, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers)
 
 
@@ -110,7 +110,7 @@ statistic_loader = torch.utils.data.DataLoader(trainset, batch_size=4, shuffle=T
 # testset = AudioDataset(data_h5_path='preprocess_audio/data.h5', add_rpm = False, train=False)
 # test_loader = torch.utils.data.DataLoader(testset, batch_size=1, shuffle=False, num_workers=args.num_workers)
 
-testset = AudioGenDataset("/home/simon/denoise/dataset/generator/", train=False, dataset_size=200, add_rpm=True)
+testset = AudioGenDataset("/home/simon/denoise/dataset/generator/", train=False, dataset_size=400, add_rpm=True)
 test_loader = torch.utils.data.DataLoader(testset, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers)
 
 def load_model(model,checkpoint):
